@@ -7,7 +7,7 @@
 ```
 sheep_diary/
 ├── frontend/         # Flutter 앱 (Flutter SDK 필수)
-├── backend/          # Django + DRF 백업에딘 서버
+├── backend/          # Django + DRF 백엔드 서버
 ├── db/               # MySQL DB 초기 세팅
 │   ├── schema/       # 테이블 생성 스크립트 (DDL)
 │   └── seed/         # 더미 데이터 삽입 스크립트 (DML)
@@ -143,7 +143,7 @@ mysql -u root -p sheep_db < db/seed/init_data.sql
 
 -   `frontend`와 `backend`는 각각 독립적으로 실행
 -   Django REST Framework로 Flutter 앱에 API 제공
--   `.env` 파일을 활용해 비밀 키 및 DB 비밀번호 등 만감 정보 분리 추천
+-   `.env` 파일을 활용해 비밀 키 및 DB 비밀번호 등 민감 정보 분리 추천
 -   `config/settings.py`에서 `ALLOWED_HOSTS`, `CORS`, `STATIC`, `MEDIA` 경로 등도 설정 필요
 
 ---
@@ -166,7 +166,7 @@ mysql -u root -p sheep_db < db/seed/init_data.sql
     -   `docs:` 문서 변경
     -   `refactor:` 리팩토링
     -   `test:` 테스트 코드 추가
--   PR 기준: `dev`로 병합, 코드 리뷰 후 `main`으로 머지
+-   Pull Request 기준: `dev`로 병합, 코드 리뷰 후 `main`으로 머지
 
 ---
 
