@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env
+venv/
+.venv/
+
+# Django
+db.sqlite3
+/media/
+staticfiles/
+
+# Flutter
+build/
+.dart_tool/
+.packages
+.pub/
+
+# VS Code
+.vscode/
