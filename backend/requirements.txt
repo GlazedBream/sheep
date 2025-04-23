@@ -1,0 +1,6 @@
+Django==4.2.20
+django-cors-headers==4.7.0
+djangorestframework==3.16.0
+djangorestframework_simplejwt==5.5.0
+mysqlclient==2.2.7
+django-redis==5.4.0

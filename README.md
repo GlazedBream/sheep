@@ -24,7 +24,7 @@ sheep_diary/
 ### 0. 깃 클론
 
 ```bash
-# 터미널을 열고 작업을 시작할 폴더로 갑니다 (아래는 예시)
+# 터미널을 열고(cmd) 작업을 시작할 폴더로 이동합니다 (아래는 예시)
 cd C:\Users\Admin\vsc_projects\sheep_diary
 
 # 깃 클론 (마지막 마침표 잊지말것)
@@ -34,7 +34,7 @@ git clone https://github.com/GlazedBream/sheep.git .
 code .
 ```
 
-### 1. 개인 브랜치 생성하기
+### 1. 개인 브랜치 사용
 
 ```bash
 # 현재 브랜치 확인
@@ -63,45 +63,27 @@ git push origin jym
 
 ```bash
 # conda 가상환경 생성 (Python 3.10 기준)
-conda create -n sheep_env python=3.10
-conda activate sheep_env
+conda create -n sheepdiary_env python=3.10
+conda activate sheepdiary_env
 
 # 필수 패키지 설치
-pip install django djangorestframework mysqlclient python-dotenv
+cd backend # 가상환경 확인하고, backend 폴더로 이동합니다.
+pip install -r requirements.txt
 ```
 
 ---
 
-### 3. Django + DRF 백엔드 설정
+### 3. Django + DRF 백엔드 개발 서버 실행
 
 ```bash
+# backend 폴더로 이동
 cd backend/
 
-# 프로젝트 생성 (처음 한 번만)
-django-admin startproject config .
-
-# 앱 생성 예시
-python manage.py startapp diary
-python manage.py startapp diary_api
-
-# DB 연동 설정 (config/settings.py)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'sheep_db',
-        'USER': 'root',
-        'PASSWORD': 'yourpassword',
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
-}
-```
-
--   마이그레이션 및 서버 실행:
-
-```bash
+# DB 마이그레이션 실행
 python manage.py makemigrations
 python manage.py migrate
+
+# 개발 서버 실행
 python manage.py runserver
 ```
 
