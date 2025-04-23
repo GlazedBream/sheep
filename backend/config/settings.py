@@ -1,6 +1,17 @@
 from pathlib import Path
 
-# import os
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,6 +45,7 @@ INSTALLED_APPS = [
     "users",
     "diaries",
     "logs",
+    "locations",
 ]
 
 MIDDLEWARE = [
@@ -79,11 +91,11 @@ DATABASES = {
     # }
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "sheepdiary",
-        "USER": "root",
-        "PASSWORD": "1234",
-        "HOST": "localhost",
-        "PORT": "3306",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "3306"),
     }
 }
 
@@ -137,7 +149,7 @@ CORS_ALLOW_ALL_ORIGINS = True  # corsheaders
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",  # AllowAny, DjangoModelPermissionsOrAnonReadOnly
+        "rest_framework.permissions.AllowAny",  # AllowAny, IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
@@ -150,18 +162,12 @@ REST_FRAMEWORK = {
 
 # send_code, verify_code 설정 추가 필요
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "sheep.diary.test@gmail.com"
-EMAIL_HOST_PASSWORD = "upycenzmfeyzhsjg"  # google app password
-DEFAULT_FROM_EMAIL = "sheep.diary.test@gmail.com"
-
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # DB 1 사용 (기본 0과 분리)
+        "LOCATION": os.getenv(
+            "REDIS_LOCATION", "redis://127.0.0.1:6379/1"
+        ),  # DB 1 사용 (기본 0과 분리)
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },

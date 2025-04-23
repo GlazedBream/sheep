@@ -1,25 +1,42 @@
-from rest_framework import generics
+from rest_framework import status
 from rest_framework.response import Response
-from datetime import datetime
+from rest_framework.views import APIView
 from .models import Event
 from .serializers import EventSerializer
 
 
-class EventListByDateRangeAPIView(generics.ListAPIView):
-    serializer_class = EventSerializer
+class EventUpdateView(APIView):
+    """
+    Event의 상세 정보를 조회(GET)하거나, 수정(PUT)하는 뷰.
+    """
 
-    def get_queryset(self):
-        start_date = self.request.query_params.get("start_date")
-        end_date = self.request.query_params.get("end_date")
-
-        if start_date and end_date:
-            try:
-                start_date = datetime.fromisoformat(start_date)
-                end_date = datetime.fromisoformat(end_date)
-            except ValueError:
-                return Response({"error": "Invalid date format"}, status=400)
-
-            return Event.objects.filter(
-                timestamp_st__gte=start_date, timestamp_end__lte=end_date
+    def get(self, request, event_id):
+        try:
+            # Event를 event_id로 조회
+            event = Event.objects.get(event_id=event_id)
+        except Event.DoesNotExist:
+            return Response(
+                {"detail": "Event not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        return Event.objects.none()
+
+        # Event의 상세 정보 반환
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, event_id):
+        try:
+            # Event를 event_id로 조회
+            event = Event.objects.get(event_id=event_id)
+        except Event.DoesNotExist:
+            return Response(
+                {"detail": "Event not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Event 데이터 업데이트
+        serializer = EventSerializer(
+            event, data=request.data, partial=True
+        )  # partial=True로 부분 업데이트 가능
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

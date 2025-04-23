@@ -1,10 +1,6 @@
 from django.urls import path
-from .views import EventListByDateRangeAPIView
+from . import views
 
 urlpatterns = [
-    path(
-        "",
-        EventListByDateRangeAPIView.as_view(),
-        name="event-list-by-date-range",
-    ),
+    path("<int:event_id>/", views.EventUpdateView.as_view(), name="event-update"),
 ]

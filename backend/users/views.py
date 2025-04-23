@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
+from django.utils import timezone
+
 from users.models import User
 from users.serializers import UserProfileSerializer
 
@@ -13,12 +15,23 @@ class DailyStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # 임시 응답: 실제 구현은 추후 로직 추가
+        # 현재 로그인된 사용자 정보 가져오기
+        user_profile = request.user.profile
+
+        # 오늘 날짜
+        today_date = timezone.now().date()
+
+        # 감정 및 일기 작성 여부 가져오기
+        emotion = user_profile.today_emotion  # 예시 필드
+        diary_exists = user_profile.today_diary.exists()  # 예시 필드
+
+        # 응답 데이터 반환
         return Response(
             {
-                "date": "2025-04-23",
-                "has_written_today": False,
-                "pending_tasks": [],
+                "is_authenticated": True,
+                "today_date": today_date,
+                "emotion": emotion,
+                "diary_exists": diary_exists,
             },
             status=status.HTTP_200_OK,
         )

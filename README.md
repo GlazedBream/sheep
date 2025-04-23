@@ -57,7 +57,7 @@ git commit -m "✨ 작업한 내용 요약"
 git push origin jym
 ```
 
-브랜치명은 본인의 이니셜이나 역할명으로 간결하게 만들어주세요.
+#### 브랜치명은 본인의 이니셜이나 역할명으로 간결하게 만들어주세요.
 
 ### 2. Python Conda 환경 준비
 
@@ -87,37 +87,80 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+#### .env 파일은 별도로 팀 내부에서 공유합니다. Git에는 절대 업로드하지 마세요.
+
 ---
 
-### 4. Flutter 프론트엔드 설정
+### 4. API 테스트 방법
+
+개발 중인 API를 로컬에서 테스트하려면 다음과 같은 절차를 따릅니다.
+
+### 예시: API-E002 — GET /api/events/{event_id}
+
+#### 1. 서버 실행
 
 ```bash
-# Flutter 설치 후 확인
-flutter doctor
-
-# 앱 생성 (처음 한 번만)
-flutter create frontend
-
-cd frontend/
-
-# 의존성 설치 (예: intl, http 등)
-flutter pub add intl
-flutter pub add http
-
-# 앱 실행 (에뮬레이터 또는 기기 연결 후)
-flutter run
+cd backend/
+python manage.py runserver
 ```
 
----
-
-### 5. MySQL DB 초기화
+#### 2. Dio로 API 호출
 
 ```bash
-# schema.sql 실행
-mysql -u root -p sheep_db < db/schema/init_schema.sql
+import 'package:dio/dio.dart';
 
-# seed 데이터 삽입
-mysql -u root -p sheep_db < db/seed/init_data.sql
+Future<void> fetchEvent(int eventId) async {
+  final dio = Dio();
+
+  final String baseUrl = 'http://127.0.0.1:8000'; // 안드로이드 에뮬레이터에서는 'http://10.0.2.2:8000' 사용
+  final String url = '$baseUrl/api/events/$eventId/';
+
+  try {
+    final response = await dio.get(
+      url,
+      options: Options(
+        headers: {
+          "Content-Type": "application/json",
+          // 필요 시 인증 토큰 추가
+          // "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        },
+      ),
+    );
+
+    print("✅ API 응답:");
+    print(response.data);
+  } on DioError catch (e) {
+    if (e.response != null) {
+      print("❌ 오류 발생: ${e.response?.data}");
+    } else {
+      print("❌ 네트워크 오류: ${e.message}");
+    }
+  }
+}
+```
+
+#### 3. 3. 예상 응답 예시
+
+```bash
+{
+  "event_id": 1,
+  "diary_id": 5,
+  "user_id": 1,
+  "location_id": 3,
+  "timestamp_st": "2025-04-21T14:00:00Z",
+  "timestamp_end": "2025-04-21T15:00:00Z",
+  "event_emotion": "happy",
+  "weather": "clear",
+  "is_selected_event": true,
+  "memos": [
+    {
+      "memo_content": "산책 중 기분이 좋았음"
+    },
+    {
+      "memo_content": "햇빛이 따뜻했음"
+    }
+  ]
+}
 ```
 
 ---
