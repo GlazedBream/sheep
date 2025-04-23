@@ -5,7 +5,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/auth/", include("auth.urls")),
     path("api/users/", include("users.urls")),
-    # path("api/diaries/", include("diaries.urls")),
+    path("api/diaries/", include("diaries.urls")),
     path("api/events/", include("events.urls")),
-    # path("api/logs/", include("logs.urls")),
+    path("api/logs/", include("logs.urls")),
 ]

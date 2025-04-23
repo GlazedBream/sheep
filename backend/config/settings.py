@@ -31,6 +31,9 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",  # corsheaders
     "events",
+    "users",
+    "diaries",
+    "logs",
 ]
 
 MIDDLEWARE = [
@@ -167,3 +170,5 @@ CACHES = {
 
 # 인증번호 유효시간(초)
 VERIFICATION_CODE_EXPIRE = 300
+
+AUTH_USER_MODEL = "users.User"
