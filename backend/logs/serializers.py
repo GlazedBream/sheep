@@ -5,5 +5,5 @@ from .models import SearchLog
 class SearchLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = SearchLog
-        fields = ["id", "user", "keyword", "searched_at"]
-        read_only_fields = ["id", "user", "searched_at"]
+        fields = ["id", "user", "search_query", "search_date"]
+        read_only_fields = ["id", "user", "search_date"]

@@ -1,17 +1,18 @@
 USE sheepdiary;
 
 -- 1. 사용자
-INSERT INTO user (user_id, email, password, name, gender, age) VALUES
-(1, 'gregory89@gmail.com', 'hashed_pw_1', 'Erik Dominguez', 'female', 22),
-(2, 'alexanderjohnson@weaver.com', 'hashed_pw_2', 'Jordan Wright', 'female', 64),
-(3, 'teresawilliams@gmail.com', 'hashed_pw_3', 'Samuel Mckee', 'male', 52),
-(4, 'ortizdana@wright-hart.com', 'hashed_pw_4', 'Jessica Huffman', 'male', 64),
-(5, 'zsalazar@yahoo.com', 'hashed_pw_5', 'Michael Pacheco', 'female', 32),
-(6, 'jenniferschultz@randolph-hubbard.com', 'hashed_pw_6', 'Aaron Martinez', 'female', 31),
-(7, 'amanda34@patterson-graham.com', 'hashed_pw_7', 'Jodi Reed', 'male', 25),
-(8, 'catkins@hotmail.com', 'hashed_pw_8', 'Stephanie Barrera', 'male', 47),
-(9, 'dakota81@campbell.com', 'hashed_pw_9', 'Nicholas Davis', 'female', 38),
-(10, 'marysanchez@hotmail.com', 'hashed_pw_10', 'Hailey Anderson', 'female', 58);
+INSERT INTO user (user_id, email, password, user_name, gender, age, is_active, is_staff, is_superuser) VALUES
+(1, 'gregory89@gmail.com', 'hashed_pw_1', 'Erik Dominguez', 'female', 22, TRUE, FALSE, FALSE),
+(2, 'alexanderjohnson@weaver.com', 'hashed_pw_2', 'Jordan Wright', 'female', 64, TRUE, FALSE, FALSE),
+(3, 'teresawilliams@gmail.com', 'hashed_pw_3', 'Samuel Mckee', 'male', 52, TRUE, FALSE, FALSE),
+(4, 'ortizdana@wright-hart.com', 'hashed_pw_4', 'Jessica Huffman', 'male', 64, TRUE, FALSE, FALSE),
+(5, 'zsalazar@yahoo.com', 'hashed_pw_5', 'Michael Pacheco', 'female', 32, TRUE, FALSE, FALSE),
+(6, 'jenniferschultz@randolph-hubbard.com', 'hashed_pw_6', 'Aaron Martinez', 'female', 31, TRUE, FALSE, FALSE),
+(7, 'amanda34@patterson-graham.com', 'hashed_pw_7', 'Jodi Reed', 'male', 25, TRUE, FALSE, FALSE),
+(8, 'catkins@hotmail.com', 'hashed_pw_8', 'Stephanie Barrera', 'male', 47, TRUE, FALSE, FALSE),
+(9, 'dakota81@campbell.com', 'hashed_pw_9', 'Nicholas Davis', 'female', 38, TRUE, FALSE, FALSE),
+(10, 'marysanchez@hotmail.com', 'hashed_pw_10', 'Hailey Anderson', 'female', 58, TRUE, FALSE, FALSE);
+
 
 -- 2. 감정
 INSERT INTO emotion (emotion_id, emotion_label) VALUES
@@ -67,8 +68,17 @@ INSERT INTO search_log (user_id, search_type, search_query, search_date) VALUES
 
 -- 6. 동의
 INSERT INTO agreement (user_id, gps_agreement, personal_info, terms) VALUES
-(1,1,1,1),(2,0,0,0),(3,0,1,0),(4,1,0,0),(5,1,1,1),
-(6,1,0,0),(7,1,1,1),(8,0,0,0),(9,0,1,1),(10,0,0,1);
+(1, TRUE, TRUE, TRUE),
+(2, FALSE, FALSE, FALSE),
+(3, FALSE, TRUE, FALSE),
+(4, TRUE, FALSE, FALSE),
+(5, TRUE, TRUE, TRUE),
+(6, TRUE, FALSE, FALSE),
+(7, TRUE, TRUE, TRUE),
+(8, FALSE, FALSE, FALSE),
+(9, FALSE, TRUE, TRUE),
+(10, FALSE, FALSE, TRUE);
+
 
 -- 7. 프로필 사진
 INSERT INTO user_profile_picture (user_id, profile_picture_url) VALUES
@@ -162,7 +172,7 @@ INSERT INTO picture (picture_id, picture_content_url, timestamp, longitude, lati
 (10,'https://dummyimage.com/129x551','2025-04-14 21:45:49',  -59.000166,  -19.193642);
 
 -- 14. 다이어리
-INSERT INTO diary (diary_id, user_id, emotion_id, date, final_text, created_at) VALUES
+INSERT INTO diary (diary_id, user_id, emotion_id, diary_date, final_text, created_at) VALUES
 (1,10,2,'2025-04-03 21:47:05','Effect standard trade. Feel through pretty civil investment civil. Eye center foreign record nation part consider can.','2025-04-03 21:47:05'),
 (2,2,10,'2025-03-29 17:15:36','Difference his probably develop hundred probably bag front.','2025-03-29 17:15:36'),
 (3,6,7,'2025-04-01 20:35:52','Subject culture you. Plan enter first parent southern.','2025-04-01 20:35:52'),

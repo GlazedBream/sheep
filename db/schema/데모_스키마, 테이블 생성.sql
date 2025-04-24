@@ -8,24 +8,31 @@ CREATE TABLE user (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(128) NOT NULL,
-    name VARCHAR(150),
+    user_name VARCHAR(150),
     gender ENUM('male', 'female'),
-    age INT
+    age INT,
+    joined_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_staff BOOLEAN NOT NULL DEFAULT FALSE,
+    is_superuser BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE search_log (
+    search_log_id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT,
     search_type VARCHAR(50),
     search_query TEXT,
-    search_date DATETIME,
+    search_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
 
 CREATE TABLE agreement (
-    user_id INT PRIMARY KEY,
-    gps_agreement BOOLEAN NOT NULL,
-    personal_info BOOLEAN NOT NULL,
-    terms BOOLEAN NOT NULL,
+    agreement_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT UNIQUE,
+    gps_agreement BOOLEAN DEFAULT FALSE,
+    personal_info BOOLEAN DEFAULT FALSE,
+    terms BOOLEAN DEFAULT FALSE,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
 
@@ -75,7 +82,7 @@ CREATE TABLE user_alarm_setting (
     user_id INT,
     alarm_type ENUM('daily_summary', 'writing_reminder', 'custom'),
     alarm_time TIME,
-    repeat_days VARCHAR(20),  -- 예: 'Mon,Wed,Fri'
+    repeat_days VARCHAR(27),  -- 예: 'Mon,Wed,Fri'
     is_enabled BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
@@ -114,7 +121,7 @@ CREATE TABLE diary (
     diary_id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT,
     emotion_id INT,
-    date DATETIME,
+    diary_date DATETIME,
     final_text LONGTEXT,
     created_at DATETIME,
     FOREIGN KEY (user_id) REFERENCES user(user_id),
@@ -138,8 +145,8 @@ CREATE TABLE event (
     user_id INT,
     diary_id INT,
     location_id INT,
-    timestamp_st DATETIME,
-    timestamp_end DATETIME,
+    start_time DATETIME,
+    end_time DATETIME,
     event_emotion VARCHAR(50),
     weather VARCHAR(50),
     is_selected_event BOOLEAN,
@@ -179,6 +186,7 @@ CREATE TABLE memo (
     memo_id INT PRIMARY KEY AUTO_INCREMENT,
     event_id INT,
     memo_content TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (event_id) REFERENCES event(event_id)
 );
 

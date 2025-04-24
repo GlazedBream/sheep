@@ -1,17 +1,21 @@
 from django.conf import settings
 from django.shortcuts import render
+from django.contrib.auth import get_user_model, authenticate
+from django.core.cache import cache  # Redis 캐시
+from django.core.mail import send_mail
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from .serializers import SignupSerializer, VerifyCodeSerializer, SendCodeSerializer
-from django.core.cache import cache  # Redis 캐시
 
 # get_user_model은 향후 get_user_model().objects.get(email=email), 사용자 생성 삭제, 커스텀 유저모델 속성 접근 등에서 사용
-from django.contrib.auth import get_user_model, authenticate
 
-from django.core.mail import send_mail
+
 import random
+
+User = get_user_model()
 
 
 # 회원가입 요청
@@ -19,12 +23,17 @@ class SignupView(APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            serializer.save()
             return Response(
-                {"message": "User created successfully."},
+                {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # 유효성 검사 실패 시 message와 errors 필드를 포함한 응답 구조로 리턴
+        return Response(
+            {"message": "회원가입에 실패했습니다.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 # 인증번호 발송
@@ -51,7 +60,6 @@ class SendCodeView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# 인증번호 확인
 class VerifyCodeView(APIView):
     def post(self, request):
         serializer = VerifyCodeSerializer(data=request.data)
@@ -59,9 +67,15 @@ class VerifyCodeView(APIView):
             email = serializer.validated_data["email"]
             input_code = serializer.validated_data["code"]
             stored_code = cache.get(f"verify:{email}")  # Redis에 저장된 코드 조회
+
             if stored_code is None:
                 return Response(
-                    {"message": "인증번호가 만료되었습니다. 다시 요청해주세요."},
+                    {
+                        "message": "인증번호가 만료되었습니다. 다시 요청해주세요.",
+                        "errors": {
+                            "verify_code": ["유효 시간이 초과된 인증 코드입니다."]
+                        },
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -71,10 +85,19 @@ class VerifyCodeView(APIView):
                 )
             else:
                 return Response(
-                    {"message": "인증번호가 일치하지 않습니다."},
+                    {
+                        "message": "인증번호가 일치하지 않습니다.",
+                        "errors": {
+                            "verify_code": ["입력한 인증번호가 올바르지 않습니다."]
+                        },
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"message": "요청 데이터에 오류가 있습니다.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 # 소셜 로그인 처리
@@ -91,7 +114,7 @@ class TokenObtainPairView(APIView):
     def post(self, request):
         # 사용자 인증 로직을 처리하고, JWT 토큰을 발급하는 부분입니다.
         user = authenticate(
-            username=request.data["username"], password=request.data["password"]
+            email=request.data["email"], password=request.data["password"]
         )
         if user is not None:
             refresh = RefreshToken.for_user(user)
@@ -102,21 +125,34 @@ class TokenObtainPairView(APIView):
                 }
             )
         return Response(
-            {"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED
+            {"message": "잘못된 자격 증명입니다."}, status=status.HTTP_401_UNAUTHORIZED
         )
 
 
 # 토큰 갱신
 class TokenRefreshView(APIView):
     def post(self, request):
-        # 클라이언트에서 제공한 refresh token을 사용해 새 토큰을 발급합니다.
         refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response(
+                {"message": "Refresh token이 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             refresh = RefreshToken(refresh_token)
             return Response(
-                {
-                    "access": str(refresh.access_token),
-                }
+                {"access": str(refresh.access_token)},
+                status=status.HTTP_200_OK,
+            )
+        except TokenError as e:
+            return Response(
+                {"message": "유효하지 않은 토큰입니다.", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "서버 오류가 발생했습니다.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

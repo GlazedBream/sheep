@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,15 +38,15 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    # "django.contrib.staticfiles",
+    "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",  # corsheaders
-    "events",
     "users",
     "diaries",
     "logs",
-    "locations",
+    "galleries",
+    "stores",
 ]
 
 MIDDLEWARE = [
@@ -135,8 +136,8 @@ USE_TZ = True  # API서버로만 쓰는 경우 False 사용 추천
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-# STATIC_URL = "static/"
-# STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -178,3 +179,15 @@ CACHES = {
 VERIFICATION_CODE_EXPIRE = 300
 
 AUTH_USER_MODEL = "users.User"
+
+# JWT 수명 설정
+SIMPLE_JWT = {
+    # ✅ 개발 단계에서는 access token을 사실상 무한정 유효하게 설정
+    # ❗ 배포 전 짧은 시간(timedelta(minutes=10))으로 되돌릴 것
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=3650),  # 개발용: 10년
+    # ✅ refresh token도 매우 긴 시간으로 설정해 로그인 반복 방지
+    # ❗ 배포 전 timedelta(days=14) 수준으로 조정 필요
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=3650),  # 개발용: 10년
+    "ROTATE_REFRESH_TOKENS": False,  # 개발 중에는 관리 편의를 위해 비활성화, 배포 시 True
+    "BLACKLIST_AFTER_ROTATION": True,  # 보안 테스트를 위해 활성화 유지 가능
+}
