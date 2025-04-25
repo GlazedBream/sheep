@@ -71,6 +71,10 @@ cd backend # 가상환경 확인하고, backend 폴더로 이동합니다.
 pip install -r requirements.txt
 ```
 
+-   추가로, 이메일 인증번호 보관에 사용할 캐시DB Redis를 설치합니다.
+-   https://github.com/microsoftarchive/redis/releases
+-   Assets 제일 위의 msi파일 다운로드 후 설치, PATH 추가
+
 ---
 
 ### 3. Django + DRF 백엔드 개발 서버 실행
@@ -87,7 +91,8 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-#### .env 파일은 별도로 팀 내부에서 공유합니다. Git에는 절대 업로드하지 마세요.
+-   .env 파일은 별도로 팀 내부에서 공유합니다. Git에는 절대 업로드하지 마세요.
+-   (.gitignore에 제외처리는 돼있으므로 복사 후에는 신경 안써도 됩니다.)
 
 ---
 
@@ -95,7 +100,7 @@ python manage.py runserver
 
 개발 중인 API를 로컬에서 테스트하려면 다음과 같은 절차를 따릅니다.
 
-### 예시: API-E002 — GET /api/events/{event_id}
+### 예시: API-U001 — 앱 초기 사용자 상태 확인 — GET /api/users/me/daily-status/
 
 #### 1. 서버 실행
 
@@ -104,37 +109,35 @@ cd backend/
 python manage.py runserver
 ```
 
-#### 2. Dio로 API 호출
+#### 2. http로 API 호출
 
 ```bash
-import 'package:dio/dio.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-Future<void> fetchEvent(int eventId) async {
-  final dio = Dio();
-
-  final String baseUrl = 'http://127.0.0.1:8000'; // 안드로이드 에뮬레이터에서는 'http://10.0.2.2:8000' 사용
-  final String url = '$baseUrl/api/events/$eventId/';
+Future<void> fetchUserDailyStatus(String accessToken) async {
+  const String baseUrl = 'http://127.0.0.1:8000'; // Android 에뮬레이터: 'http://10.0.2.2:8000'
+  final String url = '$baseUrl/api/users/me/daily-status/';
 
   try {
-    final response = await dio.get(
-      url,
-      options: Options(
-        headers: {
-          "Content-Type": "application/json",
-          // 필요 시 인증 토큰 추가
-          // "Authorization": "Bearer YOUR_ACCESS_TOKEN",
-        },
-      ),
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $accessToken", // JWT 토큰
+      },
     );
 
-    print("✅ API 응답:");
-    print(response.data);
-  } on DioError catch (e) {
-    if (e.response != null) {
-      print("❌ 오류 발생: ${e.response?.data}");
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      print("✅ API 응답:");
+      print(data);
     } else {
-      print("❌ 네트워크 오류: ${e.message}");
+      print("❌ 오류 발생: 상태 코드 ${response.statusCode}");
+      print(response.body);
     }
+  } catch (e) {
+    print("❌ 네트워크 오류: $e");
   }
 }
 ```
@@ -143,23 +146,10 @@ Future<void> fetchEvent(int eventId) async {
 
 ```bash
 {
-  "event_id": 1,
-  "diary_id": 5,
-  "user_id": 1,
-  "location_id": 3,
-  "timestamp_st": "2025-04-21T14:00:00Z",
-  "timestamp_end": "2025-04-21T15:00:00Z",
-  "event_emotion": "happy",
-  "weather": "clear",
-  "is_selected_event": true,
-  "memos": [
-    {
-      "memo_content": "산책 중 기분이 좋았음"
-    },
-    {
-      "memo_content": "햇빛이 따뜻했음"
-    }
-  ]
+  "is_authenticated": true,
+  "today_date": "2025-04-17",
+  "emotion": "happy",
+  "diary_exists": false
 }
 ```
 
