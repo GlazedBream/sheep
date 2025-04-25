@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "corsheaders",  # corsheaders
     "users",
     "diaries",
+    "events",
     "logs",
     "galleries",
     "stores",

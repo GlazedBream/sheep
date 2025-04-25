@@ -1,5 +1,7 @@
 from django.db import models
 
+# from events.models import Event, Keyword
+
 
 class Picture(models.Model):
     picture_id = models.AutoField(primary_key=True)
@@ -28,7 +30,7 @@ class Location(models.Model):
 
 
 class EventPicture(models.Model):
-    event = models.ForeignKey("diaries.Event", on_delete=models.CASCADE)
+    event = models.ForeignKey("events.Event", on_delete=models.CASCADE)
     picture = models.ForeignKey(Picture, on_delete=models.CASCADE)
     is_selected_picture = models.BooleanField()
 
@@ -40,7 +42,7 @@ class EventPicture(models.Model):
 
 
 class PictureKeyword(models.Model):
-    keyword = models.ForeignKey("diaries.Keyword", on_delete=models.CASCADE)
+    keyword = models.ForeignKey("events.Keyword", on_delete=models.CASCADE)
     picture = models.ForeignKey(Picture, on_delete=models.CASCADE)
     LINK_TYPE_CHOICES = [
         ("from_picture", "From Picture"),
