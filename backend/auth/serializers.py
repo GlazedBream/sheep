@@ -12,9 +12,14 @@ class SignupSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
     user_name = serializers.CharField(write_only=True)
 
+    birthday = serializers.DateField(write_only=True, required=False)
+    gender = serializers.ChoiceField(
+        choices=[("male", "남성"), ("female", "여성")], write_only=True, required=False
+    )
+
     class Meta:
         model = get_user_model()
-        fields = ["email", "password", "password2", "user_name"]
+        fields = ["email", "password", "password2", "user_name", "birthday", "gender"]
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
@@ -29,6 +34,8 @@ class SignupSerializer(serializers.ModelSerializer):
             email=validated_data["email"],
             password=validated_data["password"],
             user_name=validated_data["user_name"],
+            birthday=validated_data.get("birthday"),
+            gender=validated_data.get("gender"),
         )
         return user
 

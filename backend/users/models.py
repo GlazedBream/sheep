@@ -6,6 +6,7 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.utils import timezone
+from datetime import date
 
 
 class UserManager(BaseUserManager):
@@ -37,7 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     gender = models.CharField(
         max_length=6, choices=GENDER_CHOICES, blank=True, null=True
     )
-    age = models.PositiveIntegerField(blank=True, null=True)
+    birthday = models.DateField(blank=True, null=True)
     joined_date = models.DateTimeField(default=timezone.now)
 
     is_active = models.BooleanField(default=True)
@@ -52,6 +53,33 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def id(self):
         return self.user_id
+
+    @property
+    def age(self):
+        if self.birthday:
+            today = date.today()
+            return (
+                today.year
+                - self.birthday.year
+                - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
+            )
+        return None
+
+    @property
+    def age_group(self):
+        a = self.age
+        if a is None:
+            return None
+        elif a < 20:
+            return "10대 이하"
+        elif a < 30:
+            return "20대"
+        elif a < 40:
+            return "30대"
+        elif a < 50:
+            return "40대"
+        else:
+            return "50대 이상"
 
     def __str__(self):
         return self.email
