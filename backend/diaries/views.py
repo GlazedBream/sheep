@@ -4,12 +4,20 @@ from django.http import JsonResponse
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import Diary, Emotion, DiaryKeyword
 from .serializers import DiarySerializer
 from datetime import datetime, timedelta
 
 
 class DiaryCreateView(APIView):
+    """
+    API-D001: 일기 목록 불러오기(월별)
+    POST /api/diaries/
+    """
+
+    permission_classes = [IsAuthenticated]
+
     def post(self, request, *args, **kwargs):
         # 요청에서 받은 데이터로 시리얼라이저 생성
         data = request.data.copy()  # 복사본을 만들어서 수정 가능하게 함
@@ -30,6 +38,13 @@ class DiaryCreateView(APIView):
 
 
 class DiaryByMonthView(APIView):
+    """
+    API-D002: 일기 목록 불러오기(월별)
+    GET /api/diaries/dates/
+    """
+
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         # 요청에서 'month' 파라미터 가져오기
         month = request.query_params.get("month", None)
@@ -74,19 +89,54 @@ class DiaryByMonthView(APIView):
 
 class DiaryDetailView(APIView):
     """
-    Diary의 세부 정보를 조회하는 뷰.
-    diary_id를 통해 해당 일기의 정보를 반환.
+    Diary의 세부 정보를 조회하거나 수정하는 뷰.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    """
+    API-D003: 일기 불러오기
+    GET /api/diaries/{diary_id}/
     """
 
     def get(self, request, diary_id):
         try:
-            # diary_id로 Diary 객체 조회
             diary = Diary.objects.get(id=diary_id)
         except Diary.DoesNotExist:
             return Response(
-                {"message": "Diary not found."}, status=status.HTTP_404_NOT_FOUND
+                {"message": "'diary_id'에 맞는 일기가 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Diary 객체를 직렬화하여 응답
         serializer = DiarySerializer(diary)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    """
+    API-D005: 일기 저장
+    PUT /api/diaries/{diary_id}/
+    """
+
+    def put(self, request, diary_id):
+        try:
+            diary = Diary.objects.get(id=diary_id)
+        except Diary.DoesNotExist:
+            return Response(
+                {"message": "'diary_id'에 맞는 일기가 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        content = request.data.get("content", None)
+
+        if content is None:
+            return Response(
+                {"message": "'content' 필드를 작성해주세요"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        diary.content = content
+        diary.save()
+
+        return Response(
+            {"message": "일기가 수정되었습니다."},
+            status=status.HTTP_200_OK,
+        )

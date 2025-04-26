@@ -10,16 +10,20 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("logs", "0001_initial"),
+        ("diaries", "0002_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="searchlog",
+            model_name="diary",
             name="user",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
             ),
+        ),
+        migrations.AlterUniqueTogether(
+            name="diarykeyword",
+            unique_together={("diary", "keyword")},
         ),
     ]

@@ -16,6 +16,10 @@ class DailyStatusView(APIView):
     """
     API-U001: 앱 초기 사용자 상태 확인
     GET /api/users/me/daily-status/
+
+    응답 코드:
+    - 200 OK: 정상 응답
+    - 401 Unauthorized: 인증 실패
     """
 
     permission_classes = [IsAuthenticated]
@@ -46,6 +50,10 @@ class UserProfileView(APIView):
     """
     API-U002: 유저 프로필 조회
     GET /api/users/me/profile/
+
+    응답 코드:
+    - 200 OK: 정상 응답
+    - 401 Unauthorized: 인증 실패
     """
 
     permission_classes = [IsAuthenticated]

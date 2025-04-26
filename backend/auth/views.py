@@ -20,6 +20,15 @@ User = get_user_model()
 
 # 회원가입 요청
 class SignupView(APIView):
+    """
+    API-A003: 회원가입 요청
+    POST /api/auth/signup/
+
+    응답 코드:
+    - 201 Created: 정상 생성
+    - 400 Bad Request: 형식 오류
+    """
+
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
@@ -38,6 +47,16 @@ class SignupView(APIView):
 
 # 인증번호 발송
 class SendCodeView(APIView):
+    """
+    API-A001: 인증번호 발송
+    POST /api/auth/send-code/
+
+    응답 코드:
+    - 200 OK: 정상 응답
+    - 400 Bad Request: 형식 오류
+    - 429 Too Many Requests: 발송 횟수 제한 (미구현)
+    """
+
     def post(self, request):
         serializer = SendCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -61,6 +80,15 @@ class SendCodeView(APIView):
 
 
 class VerifyCodeView(APIView):
+    """
+    API-A002: 인증번호 발송
+    POST /api/auth/verify-code/
+
+    응답 코드:
+    - 200 OK: 정상 응답
+    - 400 Bad Request: 형식 오류
+    """
+
     def post(self, request):
         serializer = VerifyCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -102,6 +130,12 @@ class VerifyCodeView(APIView):
 
 # 소셜 로그인 처리
 class SocialLoginView(APIView):
+    """
+    API-A004: 소셜 로그인 통합 처리
+    POST /api/auth/social-login/
+    (미구현)
+    """
+
     def post(self, request):
         # 여기서 Google OAuth나 Facebook OAuth 등 소셜 로그인 처리 로직을 구현합니다.
         return Response(
@@ -111,6 +145,15 @@ class SocialLoginView(APIView):
 
 # JWT 토큰 발급 (Django Rest Framework Simple JWT 사용)
 class TokenObtainPairView(APIView):
+    """
+    API-A005: JWT 로그인 & 토큰 발급
+    POST /api/auth/token/
+
+    응답 코드:
+    - 200 OK: 정상 응답
+    - 401 Unauthorized: 자격 오류
+    """
+
     def post(self, request):
         # 사용자 인증 로직을 처리하고, JWT 토큰을 발급하는 부분입니다.
         user = authenticate(
@@ -122,7 +165,8 @@ class TokenObtainPairView(APIView):
                 {
                     "access": str(refresh.access_token),
                     "refresh": str(refresh),
-                }
+                },
+                status=status.HTTP_200_OK,
             )
         return Response(
             {"message": "잘못된 자격 증명입니다."}, status=status.HTTP_401_UNAUTHORIZED
@@ -131,6 +175,16 @@ class TokenObtainPairView(APIView):
 
 # 토큰 갱신
 class TokenRefreshView(APIView):
+    """
+    API-A006: 토큰 재발급
+    POST /api/auth/token/refresh/
+
+    응답 코드:
+    - 200 OK: 정상 응답
+    - 400 Bad Request: 형식 오류
+    - 500 Server Error: 서버 오류
+    """
+
     def post(self, request):
         refresh_token = request.data.get("refresh")
 

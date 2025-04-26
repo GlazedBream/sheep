@@ -4,14 +4,25 @@ from django.http import JsonResponse
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import Event, Keyword, Memo, EventKeyword
 from .serializers import MemoSerializer, EventSerializer
 from datetime import datetime, timedelta
 
 
 class EventUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
     """
     Event의 상세 정보를 조회(GET)하거나, 수정(PUT)하는 뷰.
+    """
+
+    """
+    API-E002: 이벤트 메모 불러오기
+    GET /api/events/{event_id}/
+
+    200 OK
+    401 Unauthorized
+    404 Not Found
     """
 
     def get(self, request, event_id):
@@ -26,6 +37,13 @@ class EventUpdateView(APIView):
         # Event의 상세 정보 반환
         serializer = EventSerializer(event)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    """
+    API-E003: 이벤트 메모 저장
+    PUT /api/events/{event_id}/
+
+
+    """
 
     def put(self, request, event_id):
         try:
@@ -47,6 +65,14 @@ class EventUpdateView(APIView):
 
 
 class EventTimelineView(APIView):
+    """
+    API-E001: 타임라인 불러오기
+    GET /api/events/
+
+
+    """
+
+    permission_classes = [IsAuthenticated]
     """
     주어진 날짜에 해당하는 이벤트들을 조회하는 API
     """

@@ -6,6 +6,7 @@ from django.utils import timezone
 
 
 class Diary(models.Model):
+    diary_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     diary_date = models.DateTimeField(default=timezone.now)
