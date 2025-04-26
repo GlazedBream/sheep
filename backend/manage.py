@@ -5,6 +5,7 @@ import sys
 
 
 def main():
+    print("test branch")
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     try:
