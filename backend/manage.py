@@ -5,8 +5,6 @@ import sys
 
 
 def main():
-    print("I am tired of this!")
-    print("hwanil")
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     try:
@@ -22,5 +20,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-print("I'm yw")
