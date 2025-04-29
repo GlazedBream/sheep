@@ -1,14 +1,16 @@
-from django.shortcuts import render
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiExample
 
 from django.utils import timezone
 
 from users.models import User
-from users.serializers import DailyStatusSerializer, UserProfileResponseSerializer
+from users.serializers import (
+    DailyStatusSerializer,
+    UserProfileResponseSerializer,
+)
 from diaries.models import Diary, Emotion
 
 

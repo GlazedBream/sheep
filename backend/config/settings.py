@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",  # corsheaders
+    "drf_spectacular",  # API documentation
     "users",
     "diaries",
     "events",
@@ -87,10 +88,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    # "default": {
-    #     "ENGINE": "django.db.backends.sqlite3",
-    #     "NAME": "mydatabase",
-    # }
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.getenv("DB_NAME"),
@@ -146,19 +143,39 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True  # corsheaders
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True  # corsheaders
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = ["https://your-domain-example.com"]  # 배포 환경 도메인 추가
 
 # Django REST Framework
-REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",  # AllowAny, IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
-    ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ],
+if DEBUG:
+    REST_FRAMEWORK = {
+        "DEFAULT_PERMISSION_CLASSES": [
+            "rest_framework.permissions.AllowAny",  # AllowAny, IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
+        ],
+        "DEFAULT_AUTHENTICATION_CLASSES": [
+            "rest_framework_simplejwt.authentication.JWTAuthentication",
+        ],
+        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    }
+else:
+    REST_FRAMEWORK = {
+        "DEFAULT_PERMISSION_CLASSES": [
+            "rest_framework.permissions.IsAuthenticated",  # AllowAny, IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
+        ],
+        "DEFAULT_AUTHENTICATION_CLASSES": [
+            "rest_framework_simplejwt.authentication.JWTAuthentication",
+        ],
+        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    }
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Sheep Diary API",
+    "DESCRIPTION": "API documentation for Sheep Diary project.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 

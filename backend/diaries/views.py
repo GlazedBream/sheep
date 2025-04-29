@@ -1,18 +1,15 @@
-from django.shortcuts import render
-from django.http import JsonResponse
-
-from rest_framework import status, generics, permissions
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Diary, Emotion, DiaryKeyword
+from .models import Diary
 from .serializers import DiarySerializer
 from datetime import datetime, timedelta
 
 
 class DiaryCreateView(APIView):
     """
-    API-D001: 일기 목록 불러오기(월별)
+    API-D001: 일기 작성 요청
     POST /api/diaries/
     """
 
@@ -50,7 +47,7 @@ class DiaryByMonthView(APIView):
         month = request.query_params.get("month", None)
 
         if not month:
-            return JsonResponse(
+            return Response(
                 {"detail": "month 파라미터를 입력해주세요."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -59,7 +56,7 @@ class DiaryByMonthView(APIView):
         try:
             month_date = datetime.strptime(month, "%Y-%m")
         except ValueError:
-            return JsonResponse(
+            return Response(
                 {"detail": "month 형식: 'YYYY-MM'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -84,7 +81,7 @@ class DiaryByMonthView(APIView):
             for diary in diaries
         ]
 
-        return JsonResponse({"diaries": diary_list}, status=status.HTTP_200_OK)
+        return Response({"diaries": diary_list}, status=status.HTTP_200_OK)
 
 
 class DiaryDetailView(APIView):

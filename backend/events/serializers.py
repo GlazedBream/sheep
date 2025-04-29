@@ -9,7 +9,7 @@ class MemoSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
-    memos = MemoSerializer(many=True, read_only=True)  # 이벤트에 대한 메모를 포함
+    memos = MemoSerializer(many=True)  # read_only 제거
 
     class Meta:
         model = Event
@@ -18,10 +18,26 @@ class EventSerializer(serializers.ModelSerializer):
             "diary_id",
             "user_id",
             "location_id",
-            "timestamp_st",
-            "timestamp_end",
+            "start_time",
+            "end_time",
             "event_emotion",
             "weather",
             "is_selected_event",
             "memos",
         ]
+
+    def update(self, instance, validated_data):
+        memos_data = validated_data.pop("memos", None)
+
+        # Event 본체 업데이트
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Memo 업데이트
+        if memos_data is not None:
+            instance.memos.all().delete()  # 기존 메모 삭제 (필요에 따라 수정 전략 변경 가능)
+            for memo_data in memos_data:
+                Memo.objects.create(event=instance, **memo_data)
+
+        return instance

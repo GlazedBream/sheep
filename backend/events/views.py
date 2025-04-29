@@ -1,13 +1,10 @@
-from django.shortcuts import render
-from django.http import JsonResponse
-
-from rest_framework import status, generics, permissions
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Event, Keyword, Memo, EventKeyword
-from .serializers import MemoSerializer, EventSerializer
-from datetime import datetime, timedelta
+from .models import Event
+from .serializers import EventSerializer
+from datetime import datetime
 
 
 class EventUpdateView(APIView):
@@ -31,7 +28,8 @@ class EventUpdateView(APIView):
             event = Event.objects.get(event_id=event_id)
         except Event.DoesNotExist:
             return Response(
-                {"message": "Event not found."}, status=status.HTTP_404_NOT_FOUND
+                {"message": "이벤트를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         # Event의 상세 정보 반환
@@ -51,7 +49,8 @@ class EventUpdateView(APIView):
             event = Event.objects.get(event_id=event_id)
         except Event.DoesNotExist:
             return Response(
-                {"message": "Event not found."}, status=status.HTTP_404_NOT_FOUND
+                {"message": "이벤트를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         # Event 데이터 업데이트
@@ -67,7 +66,7 @@ class EventUpdateView(APIView):
 class EventTimelineView(APIView):
     """
     API-E001: 타임라인 불러오기
-    GET /api/events/
+    GET /api/events/timeline/
 
 
     """
@@ -83,7 +82,7 @@ class EventTimelineView(APIView):
 
         if not date_str:
             return Response(
-                {"message": "'date' parameter is required."},
+                {"message": "'date' 파라미터가 필요합니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -92,7 +91,9 @@ class EventTimelineView(APIView):
             date = datetime.strptime(date_str, "%Y-%m-%d")
         except ValueError:
             return Response(
-                {"message": "Invalid date format. Use YYYY-MM-DD."},
+                {
+                    "message": "날짜 형식이 올바르지 않습니다. YYYY-MM-DD를 사용해주세요."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -107,7 +108,7 @@ class EventTimelineView(APIView):
 
         if not events:
             return Response(
-                {"message": "No events found for this date."},
+                {"message": "해당 날짜에 이벤트가 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
