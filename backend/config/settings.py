@@ -200,6 +200,8 @@ AUTH_USER_MODEL = "users.User"
 
 # JWT 수명 설정
 SIMPLE_JWT = {
+    "USER_ID_FIELD": "user_id",  # 기본값은 'id'
+    "USER_ID_CLAIM": "user_id",
     # ✅ 개발 단계에서는 access token을 사실상 무한정 유효하게 설정
     # ❗ 배포 전 짧은 시간(timedelta(minutes=10))으로 되돌릴 것
     "ACCESS_TOKEN_LIFETIME": timedelta(days=3650),  # 개발용: 10년

@@ -49,3 +49,7 @@ class VerifyCodeSerializer(serializers.Serializer):
     code = serializers.IntegerField(
         validators=[MinValueValidator(100000), MaxValueValidator(999999)]
     )
+
+class SocialLoginSerializer(serializers.Serializer):
+    # 미구현
+    pass

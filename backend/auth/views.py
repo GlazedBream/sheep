@@ -9,7 +9,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
-from .serializers import SignupSerializer, VerifyCodeSerializer, SendCodeSerializer
+from .serializers import (
+    SignupSerializer,
+    VerifyCodeSerializer,
+    SendCodeSerializer,
+    SocialLoginSerializer,
+)
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 import random
@@ -24,21 +29,29 @@ class SignupView(APIView):
     POST /api/auth/signup/
     """
 
+    serializer_class = SignupSerializer
+
+    # SendCodeView 예시
     @extend_schema(
-        description="회원가입 요청",
-        request=SignupSerializer,
+        description="이메일 인증 요청",
+        request=SendCodeSerializer,
         responses={
-            201: OpenApiExample(
-                "회원가입 성공",
-                value={"message": "회원가입이 완료되었습니다."},
-            ),
-            400: OpenApiExample(
-                "회원가입 실패",
-                value={
-                    "message": "회원가입에 실패했습니다.",
-                    "errors": {"field": ["error"]},
+            200: {
+                "description": "인증번호 발송 성공",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "인증번호가 발송되었습니다."}
+                    }
                 },
-            ),
+            },
+            400: {
+                "description": "이메일 형식 오류",
+                "content": {
+                    "application/json": {
+                        "example": {"email": ["올바른 이메일 형식이 아닙니다."]}
+                    }
+                },
+            },
         },
     )
     def post(self, request):
@@ -62,18 +75,28 @@ class SendCodeView(APIView):
     POST /api/auth/send-code/
     """
 
+    serializer_class = SendCodeSerializer
+
     @extend_schema(
-        description="인증번호 발송",
+        description="이메일 인증 요청",
         request=SendCodeSerializer,
         responses={
-            200: OpenApiExample(
-                "인증번호 발송 성공",
-                value={"message": "인증번호가 이메일로 전송되었습니다."},
-            ),
-            400: OpenApiExample(
-                "인증번호 발송 실패",
-                value={"email": ["필수 필드입니다."]},
-            ),
+            200: {
+                "description": "인증번호 발송 성공",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "인증번호가 발송되었습니다."}
+                    }
+                },
+            },
+            400: {
+                "description": "이메일 형식 오류",
+                "content": {
+                    "application/json": {
+                        "example": {"email": ["올바른 이메일 형식이 아닙니다."]}
+                    }
+                },
+            },
         },
     )
     def post(self, request):
@@ -104,21 +127,28 @@ class VerifyCodeView(APIView):
     POST /api/auth/verify-code/
     """
 
+    serializer_class = VerifyCodeSerializer
+
     @extend_schema(
-        description="인증번호 확인",
+        description="이메일 인증번호 확인",
         request=VerifyCodeSerializer,
         responses={
-            200: OpenApiExample(
-                "인증 성공",
-                value={"message": "인증이 완료되었습니다."},
-            ),
-            400: OpenApiExample(
-                "인증 실패",
-                value={
-                    "message": "인증번호가 일치하지 않습니다.",
-                    "errors": {"verify_code": ["입력한 인증번호가 올바르지 않습니다."]},
+            200: {
+                "description": "인증번호 확인 성공",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "인증번호가 일치합니다."}
+                    }
                 },
-            ),
+            },
+            400: {
+                "description": "인증번호 오류",
+                "content": {
+                    "application/json": {
+                        "example": {"code": ["잘못된 인증번호입니다."]}
+                    }
+                },
+            },
         },
     )
     def post(self, request):
@@ -167,6 +197,8 @@ class SocialLoginView(APIView):
     POST /api/auth/social-login/
     """
 
+    serializer_class = SocialLoginSerializer
+
     @extend_schema(
         description="소셜 로그인 처리(미구현)",
         responses={
@@ -189,18 +221,33 @@ class TokenObtainPairView(APIView):
     POST /api/auth/token/
     """
 
+    serializer_class = TokenObtainPairSerializer
+
     @extend_schema(
         description="JWT 로그인 & 토큰 발급",
         request=TokenObtainPairSerializer,
         responses={
-            200: OpenApiExample(
-                "토큰 발급 성공",
-                value={"access": "access_token", "refresh": "refresh_token"},
-            ),
-            401: OpenApiExample(
-                "인증 실패",
-                value={"message": "잘못된 자격 증명입니다."},
-            ),
+            200: {
+                "description": "JWT 토큰 발급 성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                            "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                        }
+                    }
+                },
+            },
+            401: {
+                "description": "인증 오류",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "detail": "No active account found with the given credentials"
+                        }
+                    }
+                },
+            },
         },
     )
     def post(self, request):
@@ -229,17 +276,25 @@ class TokenRefreshView(APIView):
     """
 
     @extend_schema(
-        description="토큰 재발급",
+        description="JWT 토큰 갱신",
         request=None,
         responses={
-            200: OpenApiExample(
-                "토큰 재발급 성공",
-                value={"access": "new_access_token"},
-            ),
-            400: OpenApiExample(
-                "토큰 재발급 실패",
-                value={"message": "유효하지 않은 토큰입니다."},
-            ),
+            200: {
+                "description": "토큰 갱신 성공",
+                "content": {
+                    "application/json": {
+                        "example": {"access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."}
+                    }
+                },
+            },
+            401: {
+                "description": "토큰 만료",
+                "content": {
+                    "application/json": {
+                        "example": {"detail": "Token is invalid or expired"}
+                    }
+                },
+            },
         },
     )
     def post(self, request):

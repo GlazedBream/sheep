@@ -25,6 +25,7 @@ class DailyStatusView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = DailyStatusSerializer
 
     def get(self, request):
         user = request.user
@@ -59,7 +60,11 @@ class UserProfileView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileResponseSerializer
 
+    @extend_schema(
+        description="사용자 프로필 조회", responses={200: UserProfileResponseSerializer}
+    )
     def get(self, request):
         user = request.user
         serializer = UserProfileResponseSerializer(user)

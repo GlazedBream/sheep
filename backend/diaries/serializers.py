@@ -6,7 +6,7 @@ class DiarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Diary
         fields = [
-            "id",
+            "diary_id",
             "user",
             "title",
             "final_text",

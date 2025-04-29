@@ -5,10 +5,17 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Event
 from .serializers import EventSerializer
 from datetime import datetime
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+    OpenApiExample,
+)
 
 
 class EventUpdateView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = EventSerializer
     """
     Event의 상세 정보를 조회(GET)하거나, 수정(PUT)하는 뷰.
     """
@@ -72,10 +79,48 @@ class EventTimelineView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
-    """
-    주어진 날짜에 해당하는 이벤트들을 조회하는 API
-    """
+    serializer_class = EventSerializer
 
+    @extend_schema(
+        description="타임라인 불러오기",
+        parameters=[
+            OpenApiParameter(
+                name="date",
+                description="조회할 날짜 (YYYY-MM-DD 형식)",
+                required=True,
+                type=OpenApiTypes.DATE,
+                location="query",
+                examples=[OpenApiExample(name="date_example", value="2025-04-29")],
+            )
+        ],
+        responses={
+            200: {
+                "description": "타임라인 조회 성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "events": [
+                                {
+                                    "event_id": 1,
+                                    "title": "이벤트 제목",
+                                    "start_time": "2025-04-29T10:00:00",
+                                    "end_time": "2025-04-29T11:00:00",
+                                }
+                            ]
+                        }
+                    }
+                },
+            },
+            400: {
+                "description": "날짜 파라미터 오류",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "'date' 파라미터가 필요합니다."}
+                    }
+                },
+            },
+        },
+    )
     def get(self, request):
         # 'date' 파라미터 가져오기
         date_str = request.query_params.get("date")

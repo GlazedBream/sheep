@@ -5,6 +5,12 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Diary
 from .serializers import DiarySerializer
 from datetime import datetime, timedelta
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+    OpenApiExample,
+)
 
 
 class DiaryCreateView(APIView):
@@ -14,6 +20,7 @@ class DiaryCreateView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = DiarySerializer
 
     def post(self, request, *args, **kwargs):
         # 요청에서 받은 데이터로 시리얼라이저 생성
@@ -41,7 +48,47 @@ class DiaryByMonthView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = DiarySerializer
 
+    @extend_schema(
+        description="월별 일기 목록 조회",
+        parameters=[
+            OpenApiParameter(
+                name="month",
+                description="조회할 월 (YYYY-MM 형식)",
+                required=True,
+                type=OpenApiTypes.DATE,
+                location="query",
+                examples=[OpenApiExample(name="month_example", value="2025-04")],
+            )
+        ],
+        responses={
+            200: {
+                "description": "일기 목록 조회 성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "diaries": [
+                                {
+                                    "date": "2025-04-01",
+                                    "diary_id": 1,
+                                    "emotion": "happy",
+                                }
+                            ]
+                        }
+                    }
+                },
+            },
+            400: {
+                "description": "월 파라미터 오류",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "month 파라미터를 입력해주세요."}
+                    }
+                },
+            },
+        },
+    )
     def get(self, request, *args, **kwargs):
         # 요청에서 'month' 파라미터 가져오기
         month = request.query_params.get("month", None)
@@ -90,6 +137,7 @@ class DiaryDetailView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = DiarySerializer
 
     """
     API-D003: 일기 불러오기
