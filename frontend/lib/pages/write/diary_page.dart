@@ -10,12 +10,22 @@ class DiaryEntry {
   final String text;
   final List<String> tags;
   final List<String> photos;
+  final double latitude; // 위도 추가
+  final double longitude; // 경도 추가
+  final List<LatLng> timeline; // 타임라인 경로 좌표들
+  final Set<Marker> markers;   // 지도 마커들
+  final LatLng cameraTarget;   // 지도의 초기 중심 좌표
 
   DiaryEntry({
     required this.date,
     required this.text,
     required this.tags,
     required this.photos,
+    required this.latitude, // 위도 초기화
+    required this.longitude, // 경도 초기화
+    required this.timeline,
+    required this.markers,
+    required this.cameraTarget,
   });
 }
 
@@ -27,6 +37,21 @@ extension DiaryEntryExtension on DiaryEntry {
       text: text,
       tags: tags,
       photos: photos,
+      longitude: longitude,
+      latitude: latitude,
+
+      timeline: timeline
+          .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
+          .toList(),
+      markers: markers.map((marker) => {
+        'id': marker.markerId.value,
+        'lat': marker.position.latitude,
+        'lng': marker.position.longitude,
+      }).toList(),
+      cameraTarget: {
+        'lat': cameraTarget.latitude,
+        'lng': cameraTarget.longitude,
+      },
     );
   }
 }
@@ -52,13 +77,19 @@ class _DiaryPageState extends State<DiaryPage> {
   }
 
   void _saveDiary() {
-    final updatedDiary = Diary(
-      id: UniqueKey().toString(),
+    final updatedEntry = DiaryEntry(
       date: widget.entry.date,
       text: _textController.text,
       tags: widget.entry.tags,
       photos: widget.entry.photos,
+      latitude: widget.entry.latitude,
+      longitude: widget.entry.longitude,
+      timeline: widget.entry.timeline,
+      cameraTarget: widget.entry.cameraTarget,
+      markers: widget.entry.markers,
     );
+
+    final updatedDiary = updatedEntry.toDiary();
 
     Provider.of<DiaryProvider>(context, listen: false).addDiary(updatedDiary);
     Navigator.pop(context);
@@ -153,25 +184,55 @@ class _DiaryPageState extends State<DiaryPage> {
     );
   }
 
+  // Widget _buildMapTimeline() {
+  //   return Container(
+  //     height: 200,
+  //     decoration: BoxDecoration(
+  //       color: Colors.grey[300],
+  //       borderRadius: BorderRadius.circular(12),
+  //     ),
+  //     clipBehavior: Clip.hardEdge,
+  //     child: GoogleMap(
+  //       initialCameraPosition: const CameraPosition(
+  //         target: LatLng(widget.entry.latitude, widget.entry.longitude), // 서울시청
+  //         zoom: 13,
+  //       ),
+  //       myLocationEnabled: true, // 현재 위치 표시
+  //       myLocationButtonEnabled: true, // 위치 버튼
+  //       zoomControlsEnabled: false, // 확대/축소 버튼 숨김
+  //       onMapCreated: (GoogleMapController controller) {
+  //         // 컨트롤러 저장하려면 변수로 받아와야 함
+  //       },
+  //     ),
+  //   );
+  // }
   Widget _buildMapTimeline() {
     return Container(
-      height: 200,
+      height: 300,
       decoration: BoxDecoration(
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.hardEdge,
       child: GoogleMap(
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(37.5665, 126.9780), // 서울시청
-          zoom: 13,
+        initialCameraPosition: CameraPosition(
+          target: widget.entry.cameraTarget,
+          zoom: 15,
         ),
-        myLocationEnabled: true, // 현재 위치 표시
-        myLocationButtonEnabled: true, // 위치 버튼
-        zoomControlsEnabled: false, // 확대/축소 버튼 숨김
-        onMapCreated: (GoogleMapController controller) {
-          // 컨트롤러 저장하려면 변수로 받아와야 함
+        markers: widget.entry.markers,
+        polylines: {
+          if (widget.entry.timeline.length > 1)
+            Polyline(
+              polylineId: PolylineId("timelinePath"),
+              color: Colors.blueAccent,
+              width: 4,
+              points: widget.entry.timeline,
+            ),
         },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        zoomControlsEnabled: false,
+        onMapCreated: (controller) {},
       ),
     );
   }

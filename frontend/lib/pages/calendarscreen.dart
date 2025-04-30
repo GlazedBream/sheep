@@ -10,6 +10,7 @@ import 'write/diary_page.dart';
 import 'package:provider/provider.dart';
 import '../data/diary_provider.dart'; // 경로는 실제 위치에 맞게 조정
 import '../../data/diary.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 
 class CalendarScreen extends StatefulWidget {
@@ -19,13 +20,31 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-extension DiaryExtension on Diary {
+extension DiaryModelExtension on Diary {
   DiaryEntry toDiaryEntry() {
     return DiaryEntry(
       date: date,
       text: text,
       tags: tags,
       photos: photos,
+      latitude: latitude,
+      longitude: longitude,
+
+      timeline: timeline
+          .map((e) => LatLng(e['lat'] ?? 0.0, e['lng'] ?? 0.0))
+          .toList(),
+
+      cameraTarget: LatLng(
+        cameraTarget['lat'] ?? 0.0,
+        cameraTarget['lng'] ?? 0.0,
+      ),
+
+      markers: markers.map((marker) {
+        return Marker(
+          markerId: MarkerId(marker['id'] ?? UniqueKey().toString()),
+          position: LatLng(marker['lat'] ?? 0.0, marker['lng'] ?? 0.0),
+        );
+      }).toSet(),
     );
   }
 }

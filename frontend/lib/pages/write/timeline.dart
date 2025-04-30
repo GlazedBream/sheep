@@ -31,17 +31,22 @@ class _WritePageState extends State<WritePage> {
   String emotionEmoji = '😀';
   Set<int> savedEventIndices = {}; // 저장된 타임라인 인덱스들
 
+  List<LatLng> _polylineCoordinates = [];
+  List<Marker> _markers = [];
+  GoogleMapController? _mapController;
+
   final List<String> gpsTimeline = [
+    "08:30 - 출발 from Home",
     "09:00 - Breakfast at Itaewon",
-    "10:00 - Café at Gangnam",
-    "11:30 - Bookstore in Hongdae",
-    "12:30 - Samsung Station Meeting",
-    "14:00 - Lunch near COEX",
-    "15:00 - Walk at Han River",
-    "17:00 - Shopping at Myeongdong",
-    "18:00 - Home",
-    "20:00 - Dinner with friends",
-    "22:00 - Back home",
+    "10:30 - Café in Gangnam",
+    "12:00 - Bookstore in Hongdae",
+    "13:30 - Meeting at Samsung Station",
+    "15:00 - Late Lunch near COEX",
+    "16:30 - Walk at Han River",
+    "18:00 - Shopping at Myeongdong",
+    "19:30 - Back home & rest",
+    "20:30 - Dinner with friends near Jongno",
+    "22:30 - Final return home",
   ];
 
   late final String _emojiKey;
@@ -53,7 +58,56 @@ class _WritePageState extends State<WritePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstLaunch();
       _loadSavedEvents();
+      convertTimelineToLatLng(); // ✅ 좌표 불러오기
     });
+  }
+
+  Future<void> convertTimelineToLatLng() async {
+    Map<String, LatLng> locationMap = {
+      "Home": LatLng(37.5665, 126.9780),
+      "Itaewon": LatLng(37.5340, 126.9940),
+      "Gangnam": LatLng(37.4979, 127.0276),
+      "Hongdae": LatLng(37.5563, 126.9220),
+      "Samsung Station": LatLng(37.5087, 127.0633),
+      "COEX": LatLng(37.5110, 127.0592),
+      "Han River": LatLng(37.5283, 126.9326), // 여의도 근처
+      "Myeongdong": LatLng(37.5609, 126.9862),
+      "Friends": LatLng(37.5716, 126.9768), // Jongno 저녁 장소
+    };
+
+    List<LatLng> coords = [];
+    List<Marker> markerList = [];
+
+    for (String entry in gpsTimeline) {
+      locationMap.forEach((place, coord) {
+        if (entry.contains(place)) {
+          coords.add(coord);
+
+          markerList.add(
+            Marker(
+              markerId: MarkerId(place + entry),
+              position: coord,
+              infoWindow: InfoWindow(
+                title: entry.split(" - ").first, // 시간 부분
+                snippet: place, // 장소명
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+            ),
+          );
+        }
+      });
+    }
+
+    setState(() {
+      _polylineCoordinates = coords;
+      _markers = markerList; // ✅ 마커 상태도 함께 저장
+    });
+
+    if (_polylineCoordinates.isNotEmpty) {
+      await _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(_polylineCoordinates.first, 12),
+      );
+    }
   }
 
   Future<void> _checkFirstLaunch() async {
@@ -146,14 +200,6 @@ class _WritePageState extends State<WritePage> {
               ],
             ),
             const SizedBox(height: 16),
-            // Container(
-            //   height: 200,
-            //   decoration: BoxDecoration(
-            //     color: Colors.grey[300],
-            //     borderRadius: BorderRadius.circular(12),
-            //   ),
-            //   child: const Center(child: Text("🗺 Map Placeholder")),
-            // ),
             Container(
               height: 200,
               decoration: BoxDecoration(
@@ -162,17 +208,25 @@ class _WritePageState extends State<WritePage> {
               ),
               clipBehavior: Clip.hardEdge,
               child: GoogleMap(
-                initialCameraPosition: const CameraPosition(
-                  target: LatLng(37.5665, 126.9780), // 서울시청
-                  zoom: 13,
-                ),
-                myLocationEnabled: true, // 현재 위치 표시
-                myLocationButtonEnabled: true, // 위치 버튼
-                zoomControlsEnabled: false, // 확대/축소 버튼 숨김
                 onMapCreated: (GoogleMapController controller) {
-                  // 컨트롤러 저장하려면 변수로 받아와야 함
+                  _mapController = controller;
                 },
-              ),
+                initialCameraPosition: CameraPosition(
+                  target: _polylineCoordinates.isNotEmpty
+                      ? _polylineCoordinates.first
+                      : LatLng(37.5665, 126.9780), // 기본 중심
+                  zoom: 12,
+                ),
+                polylines: {
+                  Polyline(
+                    polylineId: PolylineId('route'),
+                    points: _polylineCoordinates,
+                    color: Colors.blue,
+                    width: 5,
+                  )
+                },
+                markers: Set<Marker>.from(_markers), // ✅ 마커 표시
+              )
             ),
             const SizedBox(height: 16),
             const Text("📍 Timeline", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -230,22 +284,37 @@ class _WritePageState extends State<WritePage> {
             const SizedBox(height: 16),
             Center(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  final newEntry = DiaryEntry(
-                    date: DateTime.now().toIso8601String().split('T').first,
-                    // date: DateFormat('yyyy-MM-dd').format(DateTime.now()), // 오늘 날짜
-                    text: "자동 생성된 다이어리 요약 내용입니다.", // ✅ 요약된 텍스트
-                    tags: ["자동요약", "타임라인"],
-                    photos: [], // 사진 없으면 빈 리스트
-                  );
+                  onPressed: () {
+                    final markers = {
+                      Marker(markerId: MarkerId('start'), position: LatLng(37.5665, 126.9780)),
+                      Marker(markerId: MarkerId('end'), position: LatLng(37.5700, 126.9820)),
+                    };
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DiaryPage(entry: newEntry),
-                    ),
-                  );
-                },
+                    final timelinePath = [
+                      LatLng(37.5665, 126.9780),
+                      LatLng(37.5670, 126.9795),
+                      LatLng(37.5700, 126.9820),
+                    ];
+
+                    final newEntry = DiaryEntry(
+                      date: DateTime.now().toIso8601String().split('T').first,
+                      text: "자동 생성된 다이어리 요약 내용입니다.",
+                      tags: ["자동요약", "타임라인"],
+                      photos: [],
+                      latitude: 37.5665,
+                      longitude: 126.9780,
+                      timeline: timelinePath,
+                      markers: markers,
+                      cameraTarget: LatLng(37.5675, 126.9800), // 중앙지점
+                    );
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DiaryPage(entry: newEntry),
+                      ),
+                    );
+                  },
                 icon: const Icon(Icons.book),
                 label: const Text("Go to the Diary"),
                 style: ElevatedButton.styleFrom(
