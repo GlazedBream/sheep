@@ -31,28 +31,30 @@ class SignupView(APIView):
 
     serializer_class = SignupSerializer
 
-    # SendCodeView 예시
     @extend_schema(
-        description="이메일 인증 요청",
-        request=SendCodeSerializer,
+        description="회원가입 요청",
+        request=SignupSerializer,
         responses={
-            200: {
-                "description": "인증번호 발송 성공",
+            201: {
+                "description": "회원가입 성공",
                 "content": {
                     "application/json": {
-                        "example": {"message": "인증번호가 발송되었습니다."}
+                        "example": {"message": "회원가입이 성공적으로 완료되었습니다."}
                     }
                 },
             },
             400: {
-                "description": "이메일 형식 오류",
+                "description": "유효성 검사 실패",
                 "content": {
                     "application/json": {
-                        "example": {"email": ["올바른 이메일 형식이 아닙니다."]}
+                        "example": {
+                            "password": ["비밀번호가 일치하지 않습니다."],
+                            "email": ["이미 사용 중인 이메일입니다."]
+                        }
                     }
                 },
-            },
-        },
+            }
+        }
     )
     def post(self, request):
         serializer = SignupSerializer(data=request.data)

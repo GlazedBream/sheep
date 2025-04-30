@@ -1,8 +1,9 @@
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Diary
+from .models import Diary, DiaryKeyword, Emotion
+from events.models import Keyword
 from .serializers import DiarySerializer
 from datetime import datetime, timedelta
 from drf_spectacular.utils import (
@@ -22,22 +23,61 @@ class DiaryCreateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = DiarySerializer
 
+    @extend_schema(
+        request=DiarySerializer,
+        responses={
+            201: {
+                "description": "일기 작성 성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "message": "일기가 성공적으로 작성되었습니다."
+                        }
+                    }
+                },
+            },
+            400: {
+                "description": "유효성 검사 실패",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "keywords": ["키워드는 필수입니다."],
+                            "emotion_id": ["유효한 감정 ID가 아닙니다."]
+                        }
+                    }
+                },
+            }
+        }
+    )
     def post(self, request, *args, **kwargs):
-        # 요청에서 받은 데이터로 시리얼라이저 생성
-        data = request.data.copy()  # 복사본을 만들어서 수정 가능하게 함
-        data["user"] = request.user.id  # 로그인된 사용자의 ID를 'user' 필드에 추가
+        # 시리얼라이저에 데이터 전달 (request context 포함)
+        serializer = DiarySerializer(data=request.data, context={'request': request})
 
-        # 시리얼라이저에 데이터 전달
-        serializer = DiarySerializer(data=data)
-
-        # 시리얼라이저 검증
         if serializer.is_valid():
-            # 일기 객체 저장
-            serializer.save()
-            # 성공적으로 생성된 일기 데이터를 응답으로 반환
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Emotion 객체 가져오기
+            emotion = None
+            if 'emotion_id' in serializer.validated_data:
+                emotion = Emotion.objects.get(id=serializer.validated_data['emotion_id'])
 
-        # 유효하지 않으면 오류 응답 반환
+            # Diary 객체 생성
+            diary = serializer.save(emotion=emotion)
+
+            # 키워드 처리
+            keyword_ids = serializer.validated_data.get('keywords', [])
+            for keyword_id in keyword_ids:
+                try:
+                    keyword = Keyword.objects.get(id=keyword_id)
+                    DiaryKeyword.objects.create(
+                        diary=diary,
+                        keyword=keyword,
+                        is_selected=True,
+                        is_auto_generated=False
+                    )
+                except Keyword.DoesNotExist:
+                    continue
+
+            return Response({"message": "일기가 성공적으로 작성되었습니다."}, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -73,6 +113,8 @@ class DiaryByMonthView(APIView):
                                     "date": "2025-04-01",
                                     "diary_id": 1,
                                     "emotion": "happy",
+                                    "keywords": ["keyword1", "keyword2"],
+                                    "emotion_id": 1
                                 }
                             ]
                         }
@@ -114,14 +156,14 @@ class DiaryByMonthView(APIView):
             month=month_date.month % 12 + 1, day=1
         ) - timedelta(days=1)
 
-        diaries = Diary.objects.filter(date__gte=start_date, date__lte=end_date).values(
-            "date", "diary_id", "emotion"
-        )
+        diaries = Diary.objects.filter(
+            diary_date__gte=start_date, diary_date__lte=end_date
+        ).values("diary_date", "diary_id", "emotion")
 
         # 응답 데이터 구조화
         diary_list = [
             {
-                "date": diary["date"].strftime("%Y-%m-%d"),
+                "date": diary["diary_date"].strftime("%Y-%m-%d"),
                 "diary_id": diary["diary_id"],
                 "emotion": diary["emotion"],
             }
@@ -146,7 +188,7 @@ class DiaryDetailView(APIView):
 
     def get(self, request, diary_id):
         try:
-            diary = Diary.objects.get(id=diary_id)
+            diary = Diary.objects.get(diary_id=diary_id)
         except Diary.DoesNotExist:
             return Response(
                 {"message": "'diary_id'에 맞는 일기가 없습니다."},
@@ -163,22 +205,22 @@ class DiaryDetailView(APIView):
 
     def put(self, request, diary_id):
         try:
-            diary = Diary.objects.get(id=diary_id)
+            diary = Diary.objects.get(diary_id=diary_id)
         except Diary.DoesNotExist:
             return Response(
                 {"message": "'diary_id'에 맞는 일기가 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        content = request.data.get("content", None)
+        content = request.data.get("final_text", None)
 
         if content is None:
             return Response(
-                {"message": "'content' 필드를 작성해주세요"},
+                {"message": "'final_text' 필드를 작성해주세요"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        diary.content = content
+        diary.final_text = content
         diary.save()
 
         return Response(
