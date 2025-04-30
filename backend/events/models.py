@@ -1,12 +1,11 @@
 from django.db import models
-from diaries.models import Diary
 from users.models import User
 from galleries.models import Location
 
 
 class Event(models.Model):
     event_id = models.AutoField(primary_key=True)
-    diary_id = models.ForeignKey(Diary, on_delete=models.CASCADE)
+    diary_id = models.ForeignKey("diaries.Diary", on_delete=models.CASCADE)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     location_id = models.ForeignKey(Location, on_delete=models.CASCADE)
     start_time = models.DateTimeField()
@@ -32,14 +31,18 @@ class Memo(models.Model):
 class Keyword(models.Model):
     USER_INPUT = "user_input"
     FROM_PICTURE = "from_picture"
+    FROM_USER = "from_user"
 
     SOURCE_TYPE_CHOICES = [
         (USER_INPUT, "User Input"),
         (FROM_PICTURE, "From Picture"),
+        (FROM_USER, "From User"),
     ]
 
     content = models.CharField(max_length=50)
-    source_type = models.CharField(max_length=20, choices=SOURCE_TYPE_CHOICES)
+    source_type = models.CharField(
+        max_length=20, choices=SOURCE_TYPE_CHOICES, default=FROM_USER
+    )
 
     def __str__(self):
         return f"{self.content} ({self.source_type})"
