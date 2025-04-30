@@ -6,6 +6,9 @@ import '/pages/review/review_page.dart';
 import '/pages/mypage/mypage.dart';
 import '/data/diary_data.dart';
 import '/pages/calendarscreen.dart';
+import 'diary_page.dart';
+import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class WritePage extends StatefulWidget {
   final String emotionEmoji;
@@ -143,13 +146,33 @@ class _WritePageState extends State<WritePage> {
               ],
             ),
             const SizedBox(height: 16),
+            // Container(
+            //   height: 200,
+            //   decoration: BoxDecoration(
+            //     color: Colors.grey[300],
+            //     borderRadius: BorderRadius.circular(12),
+            //   ),
+            //   child: const Center(child: Text("🗺 Map Placeholder")),
+            // ),
             Container(
               height: 200,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(child: Text("🗺 Map Placeholder")),
+              clipBehavior: Clip.hardEdge,
+              child: GoogleMap(
+                initialCameraPosition: const CameraPosition(
+                  target: LatLng(37.5665, 126.9780), // 서울시청
+                  zoom: 13,
+                ),
+                myLocationEnabled: true, // 현재 위치 표시
+                myLocationButtonEnabled: true, // 위치 버튼
+                zoomControlsEnabled: false, // 확대/축소 버튼 숨김
+                onMapCreated: (GoogleMapController controller) {
+                  // 컨트롤러 저장하려면 변수로 받아와야 함
+                },
+              ),
             ),
             const SizedBox(height: 16),
             const Text("📍 Timeline", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -208,12 +231,25 @@ class _WritePageState extends State<WritePage> {
             Center(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: 저장 로직 추가
+                  final newEntry = DiaryEntry(
+                    date: DateTime.now().toIso8601String().split('T').first,
+                    // date: DateFormat('yyyy-MM-dd').format(DateTime.now()), // 오늘 날짜
+                    text: "자동 생성된 다이어리 요약 내용입니다.", // ✅ 요약된 텍스트
+                    tags: ["자동요약", "타임라인"],
+                    photos: [], // 사진 없으면 빈 리스트
+                  );
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DiaryPage(entry: newEntry),
+                    ),
+                  );
                 },
-                icon: const Icon(Icons.save),
-                label: const Text("Save"),
+                icon: const Icon(Icons.book),
+                label: const Text("Go to the Diary"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.lightGreen,
+                  backgroundColor: Colors.lightBlue[200],
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   textStyle: const TextStyle(fontSize: 16),
                 ),

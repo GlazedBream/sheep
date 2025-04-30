@@ -106,8 +106,8 @@ class MyPageScreen extends StatelessWidget {
             _buildButton(context, '구매 이력'),
 
             const SizedBox(height: 24),
-            _buildGreenButton(context, '로그아웃'),
-            _buildGreenButton(context, '디버깅용 Pref CLEAR/ 회원탈퇴'),
+            _buildBlueButton(context, '로그아웃'),
+            _buildBlueButton(context, '디버깅용 Pref CLEAR/ 회원탈퇴'),
           ],
         ),
       ),
@@ -182,12 +182,12 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGreenButton(BuildContext context, String text) {
+  Widget _buildBlueButton(BuildContext context, String text) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.lightGreen,
+        color: Colors.lightBlue[200],
         borderRadius: BorderRadius.circular(8),
       ),
       child: Material(
