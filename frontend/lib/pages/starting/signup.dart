@@ -339,11 +339,6 @@ class _SignUpPageState extends State<SignUpPage> {
                   lastDate: DateTime.now(),
                   locale: const Locale('ko', 'KR'), // 한국어 로컬 설정 (원하면)
                 );
-                // if (pickedDate != null) {
-                //   setState(() {
-                //     _birthdayController.text = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-                //   });
-                // }
                 if (pickedDate != null) {
                   setState(() {
                     // 포맷 적용해서 TextField에 넣기

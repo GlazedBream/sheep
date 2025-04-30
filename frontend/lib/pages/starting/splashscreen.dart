@@ -14,14 +14,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAutoLogin();
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => WritePage()),
-      );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(Duration(seconds: 3), () {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => WritePage()),
+        );
+      });
     });
   }
+
   Future<void> _checkAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final accessToken = prefs.getString('access_token');

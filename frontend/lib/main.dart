@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'pages/starting/landing.dart';
+import 'package:provider/provider.dart'; // 추가!
+import 'data/diary_provider.dart'; // 추가! (너가 만든 DiaryProvider 파일 경로에 맞춰야 해)
+import 'pages/starting/landing.dart'; // 추가! (LandingPage 위치에 맞춰야 해)
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const SheepDiaryApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DiaryProvider()), // Provider 등록
+      ],
+      child: const SheepDiaryApp(), // 원래 너가 만든 SheepDiaryApp 사용
+    ),
+  );
 }
 
 class SheepDiaryApp extends StatelessWidget {
@@ -29,7 +40,7 @@ class SheepDiaryApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const LandingPage(), // 항상 LandingPage에서 시작!
+      home: const LandingPage(), // 그대로 유지
       debugShowCheckedModeBanner: false,
     );
   }

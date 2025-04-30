@@ -6,6 +6,11 @@ import '../data/diary_data.dart';
 import 'package:intl/intl.dart';
 import 'write/emoji.dart'; // ✅ 감정 이모지 다이얼로그 함수 import 추가
 import '/pages/mypage/mypage.dart';
+import 'write/diary_page.dart';
+import 'package:provider/provider.dart';
+import '../data/diary_provider.dart'; // 경로는 실제 위치에 맞게 조정
+import '../../data/diary.dart';
+
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -14,27 +19,44 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
+extension DiaryExtension on Diary {
+  DiaryEntry toDiaryEntry() {
+    return DiaryEntry(
+      date: date,
+      text: text,
+      tags: tags,
+      photos: photos,
+    );
+  }
+}
+
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  // ✅ 날짜 선택 시 호출되는 함수
-  void _onDateSelected(BuildContext context, DateTime selectedDay) async {
-    String dateKey = DateFormat('yyyy-MM-dd').format(selectedDay);
-    final entry = diaryData[dateKey];
 
-    if (entry != null) {
+  void _onDateSelected(BuildContext context, DateTime selectedDay) {
+    String dateKey = DateFormat('yyyy-MM-dd').format(selectedDay);
+
+    final diaryProvider = Provider.of<DiaryProvider>(context, listen: false);
+    final diaries = diaryProvider.diaries;
+
+    final diary = diaries.where((d) => d.date == dateKey).isNotEmpty
+        ? diaries.firstWhere((d) => d.date == dateKey)
+        : null;
+
+
+    if (diary != null) {
       Navigator.of(context).push(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              ReviewPage(entry: entry),
+              ReviewPage(entry: diary.toDiaryEntry()), // Diary → DiaryEntry 변환 필요
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
       );
     } else {
-      // ✅ 다이어리가 없을 때 Dialog 띄우기
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -55,6 +77,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("🐑 Sheep Diary 📝"),
@@ -105,15 +128,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _selectedDay = selectedDay;
                     _focusedDay = focusedDay;
                   });
-                  _onDateSelected(context, selectedDay); // ✅ 수정된 함수
+                  _onDateSelected(context, selectedDay);
                 },
                 eventLoader: (day) {
-                  String key = DateFormat('yyyy-MM-dd').format(day);
-                  return diaryData.containsKey(key) ? [diaryData[key]!] : [];
+                  final dateKey = DateFormat('yyyy-MM-dd').format(day);
+                  final diaryProvider = Provider.of<DiaryProvider>(context, listen: false);
+                  final hasDiary = diaryProvider.diaries.any((d) => d.date == dateKey);
+                  return hasDiary ? [dateKey] : [];
                 },
                 calendarStyle: const CalendarStyle(
                   todayDecoration: BoxDecoration(
-                    color: Colors.orange,
+                    color: Colors.blue,
                     shape: BoxShape.circle,
                   ),
                   selectedDecoration: BoxDecoration(
@@ -149,7 +174,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   todayBuilder: (context, day, focusedDay) {
                     return Container(
                       decoration: const BoxDecoration(
-                        color: Colors.orange,
+                        color: Colors.lightBlue,
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -206,3 +231,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 }
+
+
+

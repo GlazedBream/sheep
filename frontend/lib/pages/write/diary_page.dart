@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../data/diary.dart';
 import '../../data/diary_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DiaryEntry {
   final String date;
@@ -156,11 +157,22 @@ class _DiaryPageState extends State<DiaryPage> {
     return Container(
       height: 200,
       decoration: BoxDecoration(
-        color: Colors.blueGrey[50],
+        color: Colors.grey[300],
         borderRadius: BorderRadius.circular(12),
       ),
-      alignment: Alignment.center,
-      child: const Text("🗺 Map Timeline Placeholder", style: TextStyle(fontSize: 16)),
+      clipBehavior: Clip.hardEdge,
+      child: GoogleMap(
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(37.5665, 126.9780), // 서울시청
+          zoom: 13,
+        ),
+        myLocationEnabled: true, // 현재 위치 표시
+        myLocationButtonEnabled: true, // 위치 버튼
+        zoomControlsEnabled: false, // 확대/축소 버튼 숨김
+        onMapCreated: (GoogleMapController controller) {
+          // 컨트롤러 저장하려면 변수로 받아와야 함
+        },
+      ),
     );
   }
 
