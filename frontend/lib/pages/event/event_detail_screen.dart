@@ -5,18 +5,21 @@ import '/gallery_bottom_sheet.dart';
 import '/pages/write/emoji.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:test_sheep/constants/location_data.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final DateTime selectedDate;
   final String emotionEmoji;
   final String timelineItem;
-  final LatLng selectedLatLng; // ✅ LatLng 추가
+  final LatLng selectedLatLng;
+  // final String locationName;
 
   const EventDetailScreen({
     required this.selectedDate,
     required this.emotionEmoji,
     required this.timelineItem,
-    required this.selectedLatLng, // ✅ LatLng 추가
+    required this.selectedLatLng,
+    // required this.locationName,
     super.key,
   });
 
@@ -26,6 +29,7 @@ class EventDetailScreen extends StatefulWidget {
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
   String selectedEmoji = '';
+  List<String?> imageSlots = [null, null]; // 두 개의 슬롯
   final TextEditingController memoController = TextEditingController();
   Set<String> selectedKeywords = {};
 
@@ -37,14 +41,26 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   final allKeywords = [
-    '벚꽃',
-    '봄',
-    '피크닉',
-    '강아지',
-    '석촌호수',
-    '러버덕',
-    '+',
+    '벚꽃', '봄', '피크닉', '강아지', '석촌호수', '러버덕', '+',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    selectedEmoji = widget.emotionEmoji;
+
+    // 갤러리에서 초기 2장 자동 선택 (실제 파일 경로로 대체 필요)
+    imageSlots = [
+      'assets/images/test0.jpg',
+      'assets/images/test1.jpg',
+    ];
+  }
+
+  @override
+  void dispose() {
+    memoController.dispose();
+    super.dispose();
+  }
 
   Future<void> sendEventToApi({
     required String title,
@@ -99,7 +115,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         longitude: savedData['longitude'] as double,
         latitude: savedData['latitude'] as double,
         time: savedData['time'] as String,
-        emotion: savedData['emotion'].toString(), // 서버에서 숫자를 string으로 받으면 .toString() 붙이기
+        emotion: savedData['emotion'].toString(),
         memos: savedData['memos'] as String,
         keywords: List<String>.from(savedData['keywords'] as List),
       );
@@ -169,10 +185,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     });
   }
 
-  void onBigBoxPlusTapped() {
+  void onBigBoxPlusTapped() async {
     debugPrint("📦 큰 사각형 + 버튼 클릭됨");
 
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -183,18 +199,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         return const GalleryBottomSheet();
       },
     );
-  }
 
-  @override
-  void initState() {
-    super.initState();
-    selectedEmoji = widget.emotionEmoji;
-  }
-
-  @override
-  void dispose() {
-    memoController.dispose();
-    super.dispose();
+    // 이미지 두 장 선택된 경우에만 상태 저장
+    if (result != null && result.length == 2) {
+      setState(() {
+        imageSlots[0] = result[0];  // 첫 번째 이미지
+        imageSlots[1] = result[1];  // 두 번째 이미지
+      });
+    }
   }
 
   @override
@@ -204,9 +216,25 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final formattedDate = DateFormat('yyyy.MM.dd EEEE').format(widget.selectedDate);
     final formattedTime = DateFormat('HH:mm').format(widget.selectedDate);
 
-    Widget buildInteractiveBox() {
+    Widget buildInteractiveBox(int index) {
       return GestureDetector(
-        onTap: onBigBoxPlusTapped,
+        onTap: () async {
+          final result = await showModalBottomSheet<List<String>>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (context) => const GalleryBottomSheet(),
+          );
+
+          if (result != null && result.isNotEmpty) {
+            setState(() {
+              imageSlots[index] = result.first;
+            });
+          }
+        },
         child: Container(
           width: squareSize,
           height: squareSize,
@@ -214,10 +242,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade300),
+            image: imageSlots[index] != null
+                ? DecorationImage(
+              image: AssetImage(imageSlots[index]!),
+              fit: BoxFit.cover,
+            )
+                : null,
           ),
-          child: const Center(
-            child: Icon(Icons.add, size: 32),
-          ),
+          child: imageSlots[index] == null
+              ? const Center(child: Icon(Icons.add, size: 32))
+              : null,
         ),
       );
     }
@@ -289,10 +323,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         spacing: 16,
                         runSpacing: 16,
                         alignment: WrapAlignment.center,
-                        children: [
-                          buildInteractiveBox(),
-                          buildInteractiveBox(),
-                        ],
+                        children: List.generate(2, (index) => buildInteractiveBox(index)),
                       ),
                       const SizedBox(height: 24),
                       TextField(
@@ -302,15 +333,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         controller: memoController,
                         maxLines: 3,
                         keyboardType: TextInputType.text,
-                        autofillHints: const <String>[],
-                        enableSuggestions: false,
-                        autocorrect: false,
                         decoration: InputDecoration(
                           labelText: '일정에 대한 메모를 입력하세요',
                           hintText: '예: 오늘 러버덕이 귀여웠다!',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         ),
                       ),
@@ -339,10 +365,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           const Text("나의 마음", style: TextStyle(fontSize: 16)),
                           const SizedBox(width: 8),
                           if (selectedEmoji.isNotEmpty)
-                            Text(
-                              selectedEmoji ?? '😀',
-                              style: const TextStyle(fontSize: 20),
-                            ),
+                            Text(selectedEmoji ?? '😀', style: const TextStyle(fontSize: 20)),
                           IconButton(
                             onPressed: () async {
                               final result = await showEventEmotionDialog(context);

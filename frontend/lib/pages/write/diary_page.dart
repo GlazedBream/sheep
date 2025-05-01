@@ -4,6 +4,9 @@ import '../../data/diary.dart';
 import '../../data/diary_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '/pages/write/emoji.dart';
 
 class DiaryEntry {
   final String date;
@@ -102,8 +105,42 @@ class _DiaryPageState extends State<DiaryPage> {
 
     final updatedDiary = updatedEntry.toDiary();
 
+    // Provider 저장
     Provider.of<DiaryProvider>(context, listen: false).addDiary(updatedDiary);
+
+    // ✅ API 서버로 전송
+    _sendDiaryToServer(updatedEntry, _textController.text);
+
+    // 페이지 종료
     Navigator.pop(context);
+  }
+
+  Future<void> _sendDiaryToServer(DiaryEntry entry, String finalText) async {
+    final url = Uri.parse('http://10.0.2.2:8000/api/diaries/'); // TODO: 실제 API 주소로 변경
+    final body = jsonEncode({
+      'diary_date': widget.entry.date,
+      'final_text': _textController.text,
+      'keywords': widget.entry.tags,
+      'emotion': convertEmojiToId(widget.entry.emotionEmoji),
+    });
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYxNDYzNTI5LCJpYXQiOjE3NDYxMDM1MjksImp0aSI6ImMzNDQ4YWM4YTZiNzQzYTA4M2ZjOTU0ZTlhM2M4ZTI2IiwidXNlcl9pZCI6Mn0.DZ4ydqTFLAVGmX5GguwG8AbjrXnWBEgYavOShHpYEJk', // 필요한 경우
+    };
+
+    try {
+      final response = await http.post(url, body: body, headers: headers);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Diary successfully saved to server!");
+      } else {
+        print("❌ Server error: ${response.statusCode}");
+        print("Response body: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Failed to connect to server: $e");
+    }
   }
 
   @override

@@ -9,6 +9,7 @@ import '/pages/calendarscreen.dart';
 import 'diary_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:test_sheep/constants/location_data.dart';
 
 class WritePage extends StatefulWidget {
   final String emotionEmoji;
@@ -303,11 +304,13 @@ class _WritePageState extends State<WritePage> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
+
                         builder: (context) => EventDetailScreen(
                           selectedDate: widget.selectedDate,
                           emotionEmoji: emotionEmoji,
                           timelineItem: selectedTimeline,
                           selectedLatLng: getLatLngFromTimelineItem(gpsTimeline[index]),
+                          // locationName: selectedEvent.locationName, // 예: "Itaewon"
                         ),
                       ),
                     );
