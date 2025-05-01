@@ -113,7 +113,10 @@ class _ReviewPageState extends State<ReviewPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => DiaryPage(entry: widget.entry),
+                        builder: (_) => DiaryPage(
+                          entry: widget.entry,  // DiaryEntry 객체를 전달
+                          emotionEmoji: widget.entry.emotionEmoji,  // DiaryEntry에서 emotionEmoji 전달
+                        ),
                       ),
                     );
                   },

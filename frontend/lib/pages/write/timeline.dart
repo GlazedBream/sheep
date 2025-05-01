@@ -13,12 +13,19 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class WritePage extends StatefulWidget {
   final String emotionEmoji;
   final DateTime selectedDate;
+  final Map<String, LatLng> locationMap = {
+    "Home": LatLng(37.5665, 126.9780),
+    "Itaewon": LatLng(37.5340, 126.9940),
+    "Hongdae": LatLng(37.5563, 126.9220),
+    "Han River": LatLng(37.5283, 126.9326), // 여의도 근처
+    "Myeongdong": LatLng(37.5609, 126.9862),
+    "Friends": LatLng(37.5716, 126.9768), // Jongno 저녁 장소
+  };
+
 
   // const WritePage({
   WritePage({ // test button 용
     super.key,
-    // required this.emotionEmoji,
-    // required this.selectedDate,
     this.emotionEmoji = '😀', // test button 용
     DateTime? selectedDate, // test button 용
   }) : selectedDate = selectedDate ?? DateTime.now();
@@ -38,10 +45,7 @@ class _WritePageState extends State<WritePage> {
   final List<String> gpsTimeline = [
     "08:30 - 출발 from Home",
     "09:00 - Breakfast at Itaewon",
-    "10:30 - Café in Gangnam",
     "12:00 - Bookstore in Hongdae",
-    "13:30 - Meeting at Samsung Station",
-    "15:00 - Late Lunch near COEX",
     "16:30 - Walk at Han River",
     "18:00 - Shopping at Myeongdong",
     "19:30 - Back home & rest",
@@ -55,6 +59,7 @@ class _WritePageState extends State<WritePage> {
   void initState() {
     super.initState();
     _emojiKey = 'selectedEmotionEmoji_${widget.selectedDate.toIso8601String().split('T').first}';
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstLaunch();
       _loadSavedEvents();
@@ -62,14 +67,11 @@ class _WritePageState extends State<WritePage> {
     });
   }
 
-  Future<void> convertTimelineToLatLng() async {
+  Future<List<LatLng>> convertTimelineToLatLng() async {
     Map<String, LatLng> locationMap = {
       "Home": LatLng(37.5665, 126.9780),
       "Itaewon": LatLng(37.5340, 126.9940),
-      "Gangnam": LatLng(37.4979, 127.0276),
       "Hongdae": LatLng(37.5563, 126.9220),
-      "Samsung Station": LatLng(37.5087, 127.0633),
-      "COEX": LatLng(37.5110, 127.0592),
       "Han River": LatLng(37.5283, 126.9326), // 여의도 근처
       "Myeongdong": LatLng(37.5609, 126.9862),
       "Friends": LatLng(37.5716, 126.9768), // Jongno 저녁 장소
@@ -91,7 +93,7 @@ class _WritePageState extends State<WritePage> {
                 title: entry.split(" - ").first, // 시간 부분
                 snippet: place, // 장소명
               ),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
             ),
           );
         }
@@ -108,6 +110,8 @@ class _WritePageState extends State<WritePage> {
         CameraUpdate.newLatLngZoom(_polylineCoordinates.first, 12),
       );
     }
+
+    return coords;
   }
 
   Future<void> _checkFirstLaunch() async {
@@ -122,9 +126,18 @@ class _WritePageState extends State<WritePage> {
       });
     }
 
+    // 다이얼로그 첫 실행 여부 확인
     bool? hasLaunched = prefs.getBool(dateKey);
     if (hasLaunched == null || hasLaunched == false) {
-      await _showEmotionDialog(context, emojiKey);
+      // ✅ 이모지 다이얼로그 직접 호출
+      String? result = await showTodayEmotionDialog(context);
+      if (result != null) {
+        setState(() {
+          emotionEmoji = result;
+        });
+        await prefs.setString(emojiKey, result);
+      }
+
       await prefs.setBool(dateKey, true);
     }
   }
@@ -146,6 +159,33 @@ class _WritePageState extends State<WritePage> {
     });
   }
 
+  LatLng getLatLngFromTimelineItem(String timelineItem) {
+    Map<String, LatLng> locationMap = {
+      "Home": LatLng(37.5665, 126.9780),
+      "Itaewon": LatLng(37.5340, 126.9940),
+      "Hongdae": LatLng(37.5563, 126.9220),
+      "Han River": LatLng(37.5283, 126.9326), // 여의도 근처
+      "Myeongdong": LatLng(37.5609, 126.9862),
+      "Friends": LatLng(37.5716, 126.9768), // Jongno 저녁 장소
+    };
+    String? extractPlaceName(String timelineItem) {
+      // timelineItem 예: "08:30 - 출발 from Home"
+      final regex = RegExp(r'from (\w+(?: \w+)*)'); // "from 장소명" 추출
+      final match = regex.firstMatch(timelineItem);
+      if (match != null && match.groupCount >= 1) {
+        return match.group(1);
+      }
+      return null;
+    }
+
+    final place = extractPlaceName(timelineItem);
+    if (place != null && locationMap.containsKey(place)) {
+      return locationMap[place]!;
+    }
+    // 기본 좌표 (예: 서울 시청)
+    return LatLng(37.5665, 126.9780);
+  }
+
   Future<void> _saveEventIndex(int index) async {
     final prefs = await SharedPreferences.getInstance();
     final dateKey = widget.selectedDate.toIso8601String().split('T').first;
@@ -156,14 +196,20 @@ class _WritePageState extends State<WritePage> {
     });
   }
 
-  Future<void> _showEmotionDialog(BuildContext context, String emojiKey) async {
-    String? selectedEmoji = await showTodayEmotionDialog(context);
-    if (selectedEmoji != null) {
+  Future<void> _selectTodayEmotion(BuildContext context, String emojiKey) async {
+    // 1. 다이얼로그 열기
+    String? selected = await showTodayEmotionDialog(context);
+
+    // 2. 선택되었을 경우에만 처리
+    if (selected != null) {
+      // 3. 상태 업데이트
       setState(() {
-        emotionEmoji = selectedEmoji;
+        emotionEmoji = selected;
       });
+
+      // 4. SharedPreferences 저장
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(emojiKey, selectedEmoji);
+      await prefs.setString(emojiKey, selected);
     }
   }
 
@@ -192,10 +238,24 @@ class _WritePageState extends State<WritePage> {
                   style: const TextStyle(fontSize: 18),
                 ),
                 const SizedBox(width: 8),
+                // IconButton(
+                //   icon: const Icon(Icons.edit, size: 20),
+                //   tooltip: 'Edit Emotion',
+                //   onPressed: () => _showEmotionDialog(context, _emojiKey),
+                // ),
                 IconButton(
                   icon: const Icon(Icons.edit, size: 20),
                   tooltip: 'Edit Emotion',
-                  onPressed: () => _showEmotionDialog(context, _emojiKey),
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    String? result = await showTodayEmotionDialog(context);
+                    if (result != null) {
+                      setState(() {
+                        emotionEmoji = result;
+                      });
+                      await prefs.setString(_emojiKey, result);
+                    }
+                  },
                 ),
               ],
             ),
@@ -247,6 +307,7 @@ class _WritePageState extends State<WritePage> {
                           selectedDate: widget.selectedDate,
                           emotionEmoji: emotionEmoji,
                           timelineItem: selectedTimeline,
+                          selectedLatLng: getLatLngFromTimelineItem(gpsTimeline[index]),
                         ),
                       ),
                     );
@@ -284,7 +345,8 @@ class _WritePageState extends State<WritePage> {
             const SizedBox(height: 16),
             Center(
               child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    final coords = await convertTimelineToLatLng();
                     final markers = {
                       Marker(markerId: MarkerId('start'), position: LatLng(37.5665, 126.9780)),
                       Marker(markerId: MarkerId('end'), position: LatLng(37.5700, 126.9820)),
@@ -303,15 +365,19 @@ class _WritePageState extends State<WritePage> {
                       photos: [],
                       latitude: 37.5665,
                       longitude: 126.9780,
-                      timeline: timelinePath,
+                      timeline: coords,
                       markers: markers,
-                      cameraTarget: LatLng(37.5675, 126.9800), // 중앙지점
+                      cameraTarget: LatLng(37.5675, 126.9800),
+                      emotionEmoji: emotionEmoji,
                     );
 
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DiaryPage(entry: newEntry),
+                        builder: (context) => DiaryPage(
+                          entry: newEntry,
+                          emotionEmoji: newEntry.emotionEmoji,
+                        ),
                       ),
                     );
                   },

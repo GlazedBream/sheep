@@ -10,22 +10,24 @@ class DiaryEntry {
   final String text;
   final List<String> tags;
   final List<String> photos;
-  final double latitude; // 위도 추가
-  final double longitude; // 경도 추가
-  final List<LatLng> timeline; // 타임라인 경로 좌표들
-  final Set<Marker> markers;   // 지도 마커들
-  final LatLng cameraTarget;   // 지도의 초기 중심 좌표
+  final double latitude; // 위도
+  final double longitude; // 경도
+  final List<LatLng> timeline; // 타임라인 좌표들
+  final Set<Marker> markers; // 지도 마커들
+  final LatLng cameraTarget; // 지도 중심 좌표
+  final String emotionEmoji; // 🥳 선택된 이모지
 
   DiaryEntry({
     required this.date,
     required this.text,
     required this.tags,
     required this.photos,
-    required this.latitude, // 위도 초기화
-    required this.longitude, // 경도 초기화
+    required this.latitude,
+    required this.longitude,
     required this.timeline,
     required this.markers,
     required this.cameraTarget,
+    required this.emotionEmoji,
   });
 }
 
@@ -52,14 +54,22 @@ extension DiaryEntryExtension on DiaryEntry {
         'lat': cameraTarget.latitude,
         'lng': cameraTarget.longitude,
       },
+
+      emotionEmoji: emotionEmoji,
+
     );
   }
 }
 
 class DiaryPage extends StatefulWidget {
   final DiaryEntry entry;
+  final String emotionEmoji;
 
-  const DiaryPage({super.key, required this.entry});
+  const DiaryPage({
+    super.key,
+    required this.entry,  // DiaryEntry 객체 전달
+    required this.emotionEmoji,  // 이모지 전달
+  });
 
   @override
   State<DiaryPage> createState() => _DiaryPageState();
@@ -87,6 +97,7 @@ class _DiaryPageState extends State<DiaryPage> {
       timeline: widget.entry.timeline,
       cameraTarget: widget.entry.cameraTarget,
       markers: widget.entry.markers,
+      emotionEmoji: widget.entry.emotionEmoji, // 이모지 저장
     );
 
     final updatedDiary = updatedEntry.toDiary();
@@ -114,12 +125,27 @@ class _DiaryPageState extends State<DiaryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 날짜
-            Text(
-              "🗓 ${widget.entry.date}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Text(
+                  "🗓 ${widget.entry.date}",
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 130),
+                if (widget.entry.emotionEmoji.isNotEmpty) ...[
+                  const Text(
+                    "오늘의 기분 ",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    widget.entry.emotionEmoji,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 12),
+
 
             // 지도/사진 전환 ChoiceChip
             Row(
@@ -184,28 +210,7 @@ class _DiaryPageState extends State<DiaryPage> {
     );
   }
 
-  // Widget _buildMapTimeline() {
-  //   return Container(
-  //     height: 200,
-  //     decoration: BoxDecoration(
-  //       color: Colors.grey[300],
-  //       borderRadius: BorderRadius.circular(12),
-  //     ),
-  //     clipBehavior: Clip.hardEdge,
-  //     child: GoogleMap(
-  //       initialCameraPosition: const CameraPosition(
-  //         target: LatLng(widget.entry.latitude, widget.entry.longitude), // 서울시청
-  //         zoom: 13,
-  //       ),
-  //       myLocationEnabled: true, // 현재 위치 표시
-  //       myLocationButtonEnabled: true, // 위치 버튼
-  //       zoomControlsEnabled: false, // 확대/축소 버튼 숨김
-  //       onMapCreated: (GoogleMapController controller) {
-  //         // 컨트롤러 저장하려면 변수로 받아와야 함
-  //       },
-  //     ),
-  //   );
-  // }
+
   Widget _buildMapTimeline() {
     return Container(
       height: 300,
@@ -217,7 +222,7 @@ class _DiaryPageState extends State<DiaryPage> {
       child: GoogleMap(
         initialCameraPosition: CameraPosition(
           target: widget.entry.cameraTarget,
-          zoom: 15,
+          zoom: 12,
         ),
         markers: widget.entry.markers,
         polylines: {
@@ -236,6 +241,8 @@ class _DiaryPageState extends State<DiaryPage> {
       ),
     );
   }
+
+
 
   Widget _buildPhotoSlider() {
     if (widget.entry.photos.isEmpty) {

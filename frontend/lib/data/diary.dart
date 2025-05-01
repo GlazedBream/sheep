@@ -13,6 +13,7 @@ class Diary {
   final List<Map<String, double>> timeline;
   final Map<String, double> cameraTarget;
   final List<Map<String, dynamic>> markers;
+  final String emotionEmoji; // 새로운 필드 추가
 
   static LatLng mapToLatLng(Map<String, double> map) {
     return LatLng(map['lat']!, map['lng']!);
@@ -35,6 +36,7 @@ class Diary {
     required this.timeline,
     required this.markers,
     required this.cameraTarget,
+    required this.emotionEmoji, // selectedEmoji를 생성자에 추가
   });
 
   factory Diary.empty() {
@@ -49,6 +51,7 @@ class Diary {
       timeline: [], // ✅ 빈 리스트로 초기화
       cameraTarget: {'lat': 0.0, 'lng': 0.0}, // ✅ 기본 좌표값
       markers: [], // ✅ 마커도 빈 리스트로 초기화
+      emotionEmoji: '', // 기본적으로 빈 문자열로 초기화
     );
   }
 }
