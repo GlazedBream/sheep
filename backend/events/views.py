@@ -13,6 +13,98 @@ from drf_spectacular.utils import (
 )
 
 
+class EventCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = EventSerializer
+    """
+    API-E006: 이벤트 생성
+    POST /api/events/
+
+    201 Created: 이벤트가 성공적으로 생성됨
+    400 Bad Request: 요청 데이터가 유효하지 않음
+    401 Unauthorized: 인증되지 않은 사용자
+
+    필수 요청 필드:
+    - start_time: 이벤트 시작 시간 (ISO 8601 형식)
+
+    선택적 요청 필드:
+    - diary_id: 관련 일기 ID (없으면 null)
+    - title: 이벤트 제목 (없으면 null)
+    - longitude: 경도 (없으면 null)
+    - latitude: 위도 (없으면 null)
+    - event_emotion_id: 이벤트 감정 상태 ID (기본값: 1)
+    - weather: 날씨 (기본값: "sunny")
+    - is_selected_event: 선택된 이벤트 여부 (기본값: false)
+    - memos: 이벤트 메모 배열 (기본값: 빈 배열)
+    - keywords: 이벤트 키워드 배열 (기본값: 빈 배열)
+        - content: 키워드 내용 (필수)
+        - source_type: 키워드 출처 (선택, 기본값: "from_user")
+    """
+
+    @extend_schema(
+        request=EventSerializer,
+        responses={
+            201: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                name="Success Example",
+                value={
+                    "start_time": "2025-05-01T10:00:00+09:00",
+                    "longitude": 127.0,
+                    "latitude": 37.0,
+                    "title": "공원 산책",
+                    "event_emotion_id": 1,
+                    "weather": "sunny",
+                    "is_selected_event": True,
+                    "keywords": [
+                        {
+                            "content": "산책",
+                            "source_type": "from_user"
+                        },
+                        {
+                            "content": "공원",
+                            "source_type": "from_user"
+                        }
+                    ]
+                },
+            ),
+            OpenApiExample(
+                name="Error Example",
+                value={
+                    "start_time": ["이 필드는 필수입니다."],
+                },
+            ),
+        ],
+    )
+    def post(self, request):
+        # 현재 로그인된 유저의 ID를 가져옴
+        user_id = request.user.id
+
+        # 시리얼라이저에 데이터 전달
+        serializer = EventSerializer(data=request.data, context={"request": request})
+
+        if serializer.is_valid():
+            # Event 생성
+            event = serializer.save(
+                user_id=user_id,
+                event_emotion=serializer.validated_data.get("event_emotion", "happy"),
+                weather=serializer.validated_data.get("weather", "sunny"),
+                is_selected_event=serializer.validated_data.get("is_selected_event", False),
+            )
+
+            # Memo 처리
+            memos_data = serializer.validated_data.get("memos", [])
+            for memo_data in memos_data:
+                Memo.objects.create(event=event, **memo_data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class EventUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = EventSerializer
@@ -104,7 +196,6 @@ class EventTimelineView(APIView):
                                     "event_id": 1,
                                     "title": "이벤트 제목",
                                     "start_time": "2025-04-29T10:00:00",
-                                    "end_time": "2025-04-29T11:00:00",
                                 }
                             ]
                         }
@@ -148,7 +239,7 @@ class EventTimelineView(APIView):
 
         # 해당 날짜에 발생한 이벤트들 조회
         events = Event.objects.filter(
-            start_time__gte=start_of_day, end_time__lte=end_of_day
+            start_time__gte=start_of_day, start_time__lte=end_of_day
         )
 
         if not events:

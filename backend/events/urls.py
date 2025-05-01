@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import EventUpdateView, EventTimelineView
+from .views import EventCreateView, EventUpdateView, EventTimelineView
 
 urlpatterns = [
-    path("<int:event_id>/", EventUpdateView.as_view(), name="event-update"),
-    path("timeline/", EventTimelineView.as_view(), name="event-timeline"),
+    path("", EventCreateView.as_view(), name="event_create"),
+    path("timeline/", EventTimelineView.as_view(), name="event_timeline"),
+    path("<int:event_id>/", EventUpdateView.as_view(), name="event_detail"),
 ]

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Diary, Emotion, DiaryKeyword
 from events.models import Keyword
+import os
 
 
 class DiarySerializer(serializers.ModelSerializer):
@@ -16,20 +17,59 @@ class DiarySerializer(serializers.ModelSerializer):
         help_text="Emotion ID"
     )
 
+    if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+        longitude = serializers.FloatField(required=False, allow_null=True)
+        latitude = serializers.FloatField(required=False, allow_null=True)
+    else:
+        galleries_location = serializers.JSONField(required=False, allow_null=True)
+
     class Meta:
         model = Diary
-        fields = [
-            "diary_id",
-            "user",
-            "diary_date",
-            "final_text",
-            "emotion",
-            "keywords",
-            "emotion_id",
-            "created_at",
-            "updated_at",
-        ]
+        if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            fields = [
+                "diary_id",
+                "user",
+                "diary_date",
+                "final_text",
+                "emotion",
+                "keywords",
+                "emotion_id",
+                "created_at",
+                "updated_at",
+                "longitude",
+                "latitude"
+            ]
+        else:
+            fields = [
+                "diary_id",
+                "user",
+                "diary_date",
+                "final_text",
+                "emotion",
+                "keywords",
+                "emotion_id",
+                "created_at",
+                "updated_at",
+                "galleries_location"
+            ]
         read_only_fields = ["user", "emotion", "created_at", "updated_at"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            if instance.galleries_location:
+                data['longitude'] = instance.galleries_location.get('longitude')
+                data['latitude'] = instance.galleries_location.get('latitude')
+            data.pop('galleries_location', None)
+        return data
+
+    def to_internal_value(self, data):
+        if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            longitude = data.get('longitude')
+            latitude = data.get('latitude')
+            if longitude is not None and latitude is not None:
+                data['galleries_location'] = {'longitude': longitude, 'latitude': latitude}
+        return super().to_internal_value(data)
 
     def validate_keywords(self, value):
         """

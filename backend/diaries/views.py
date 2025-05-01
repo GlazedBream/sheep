@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
     OpenApiTypes,
     OpenApiExample,
 )
+import os
 
 
 class DiaryCreateView(APIView):
@@ -30,9 +31,7 @@ class DiaryCreateView(APIView):
                 "description": "일기 작성 성공",
                 "content": {
                     "application/json": {
-                        "example": {
-                            "message": "일기가 성공적으로 작성되었습니다."
-                        }
+                        "example": {"message": "일기가 성공적으로 작성되었습니다."}
                     }
                 },
             },
@@ -42,28 +41,30 @@ class DiaryCreateView(APIView):
                     "application/json": {
                         "example": {
                             "keywords": ["키워드는 필수입니다."],
-                            "emotion_id": ["유효한 감정 ID가 아닙니다."]
+                            "emotion_id": ["유효한 감정 ID가 아닙니다."],
                         }
                     }
                 },
-            }
-        }
+            },
+        },
     )
     def post(self, request, *args, **kwargs):
         # 시리얼라이저에 데이터 전달 (request context 포함)
-        serializer = DiarySerializer(data=request.data, context={'request': request})
+        serializer = DiarySerializer(data=request.data, context={"request": request})
 
         if serializer.is_valid():
             # Emotion 객체 가져오기
             emotion = None
-            if 'emotion_id' in serializer.validated_data:
-                emotion = Emotion.objects.get(id=serializer.validated_data['emotion_id'])
+            if "emotion_id" in serializer.validated_data:
+                emotion = Emotion.objects.get(
+                    id=serializer.validated_data["emotion_id"]
+                )
 
             # Diary 객체 생성
             diary = serializer.save(emotion=emotion)
 
             # 키워드 처리
-            keyword_ids = serializer.validated_data.get('keywords', [])
+            keyword_ids = serializer.validated_data.get("keywords", [])
             for keyword_id in keyword_ids:
                 try:
                     keyword = Keyword.objects.get(id=keyword_id)
@@ -71,12 +72,15 @@ class DiaryCreateView(APIView):
                         diary=diary,
                         keyword=keyword,
                         is_selected=True,
-                        is_auto_generated=False
+                        is_auto_generated=False,
                     )
                 except Keyword.DoesNotExist:
                     continue
 
-            return Response({"message": "일기가 성공적으로 작성되었습니다."}, status=status.HTTP_201_CREATED)
+            return Response(
+                {"message": "일기가 성공적으로 작성되었습니다."},
+                status=status.HTTP_201_CREATED,
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -114,7 +118,7 @@ class DiaryByMonthView(APIView):
                                     "diary_id": 1,
                                     "emotion": "happy",
                                     "keywords": ["keyword1", "keyword2"],
-                                    "emotion_id": 1
+                                    "emotion_id": 1,
                                 }
                             ]
                         }
@@ -130,6 +134,48 @@ class DiaryByMonthView(APIView):
                 },
             },
         },
+    )
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="month",
+                description="조회할 월 (YYYY-MM 형식)",
+                required=True,
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+            )
+        ],
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT},
+        examples=[
+            OpenApiExample(
+                name="Success Example",
+                value={
+                    "diaries": [
+                        {
+                            "date": "2025-04-01",
+                            "diary_id": 1,
+                            "emotion": "happy",
+                            "keywords": ["keyword1", "keyword2"],
+                            "emotion_id": 1,
+                            **(
+                                {"longitude": 127.0, "latitude": 37.0}
+                                if os.getenv("USE_GEOLOCATION_BYPASS", "False").lower()
+                                == "true"
+                                else {
+                                    "galleries_location": {
+                                        "type": "Point",
+                                        "coordinates": [127.0, 37.0],
+                                    }
+                                }
+                            ),
+                        }
+                    ]
+                },
+            ),
+            OpenApiExample(
+                name="Error Example", value={"detail": "month 파라미터를 입력해주세요."}
+            ),
+        ],
     )
     def get(self, request, *args, **kwargs):
         # 요청에서 'month' 파라미터 가져오기
@@ -150,27 +196,38 @@ class DiaryByMonthView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 해당 월의 일기를 DB에서 조회
+        # 해당 월의 일기 목록 조회
         start_date = month_date.replace(day=1)
-        end_date = month_date.replace(
-            month=month_date.month % 12 + 1, day=1
+        end_date = (start_date.replace(day=28) + timedelta(days=4)).replace(
+            day=1
         ) - timedelta(days=1)
-
         diaries = Diary.objects.filter(
-            diary_date__gte=start_date, diary_date__lte=end_date
-        ).values("diary_date", "diary_id", "emotion")
+            user=request.user, diary_date__range=(start_date, end_date)
+        ).order_by("-diary_date")
 
-        # 응답 데이터 구조화
-        diary_list = [
-            {
-                "date": diary["diary_date"].strftime("%Y-%m-%d"),
-                "diary_id": diary["diary_id"],
-                "emotion": diary["emotion"],
-            }
-            for diary in diaries
-        ]
+        # 일기별로 키워드와 감정 상태 가져오기
+        diary_data = []
+        for diary in diaries:
+            # 키워드 가져오기
+            keywords = [
+                diary_keyword.keyword.content
+                for diary_keyword in DiaryKeyword.objects.filter(diary=diary)
+            ]
 
-        return Response({"diaries": diary_list}, status=status.HTTP_200_OK)
+            # 감정 상태 가져오기
+            emotion = diary.emotion.name if diary.emotion else ""
+
+            diary_data.append(
+                {
+                    "date": diary.diary_date.strftime("%Y-%m-%d"),
+                    "diary_id": diary.diary_id,
+                    "emotion": emotion,
+                    "keywords": keywords,
+                    "emotion_id": diary.emotion_id if diary.emotion_id else None,
+                }
+            )
+
+        return Response({"diaries": diary_data}, status=status.HTTP_200_OK)
 
 
 class DiaryDetailView(APIView):

@@ -1,18 +1,25 @@
 from django.db import models
 from users.models import User
 from galleries.models import Location
+import os
 
 
 class Event(models.Model):
     event_id = models.AutoField(primary_key=True)
-    diary_id = models.ForeignKey("diaries.Diary", on_delete=models.CASCADE)
+    diary_id = models.ForeignKey("diaries.Diary", on_delete=models.CASCADE, null=True, blank=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    location_id = models.ForeignKey(Location, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200, null=True, blank=True)
+    
+    if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+        longitude = models.FloatField(null=True, blank=True)
+        latitude = models.FloatField(null=True, blank=True)
+    else:
+        location_id = models.ForeignKey(Location, on_delete=models.CASCADE)
+    
     start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    event_emotion = models.CharField(max_length=50)
-    weather = models.CharField(max_length=50)
-    is_selected_event = models.BooleanField()
+    event_emotion_id = models.IntegerField(default=1)
+    weather = models.CharField(max_length=50, default="sunny")
+    is_selected_event = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Event {self.event_id}"
