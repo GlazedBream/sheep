@@ -252,8 +252,33 @@ class DiaryDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = DiarySerializer(diary)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Diary 모델의 필드를 조건부로 처리
+        if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            # longitude, latitude 필드가 있는 경우
+            serializer = DiarySerializer(diary)
+            serializer_data = serializer.data
+            if hasattr(diary, 'longitude') and hasattr(diary, 'latitude'):
+                serializer_data['longitude'] = diary.longitude
+                serializer_data['latitude'] = diary.latitude
+            else:
+                serializer_data['longitude'] = None
+                serializer_data['latitude'] = None
+        else:
+            # galleries_location 필드가 있는 경우
+            serializer = DiarySerializer(diary)
+            serializer_data = serializer.data
+            if hasattr(diary, 'galleries_location'):
+                if diary.galleries_location:
+                    serializer_data['longitude'] = diary.galleries_location.get('longitude')
+                    serializer_data['latitude'] = diary.galleries_location.get('latitude')
+                else:
+                    serializer_data['longitude'] = None
+                    serializer_data['latitude'] = None
+            else:
+                serializer_data['longitude'] = None
+                serializer_data['latitude'] = None
+
+        return Response(serializer_data, status=status.HTTP_200_OK)
 
     """
     API-D005: 일기 저장
@@ -276,6 +301,24 @@ class DiaryDetailView(APIView):
                 {"message": "'final_text' 필드를 작성해주세요"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Diary 모델의 필드를 조건부로 처리
+        if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            # longitude, latitude 필드가 있는 경우
+            longitude = request.data.get('longitude', None)
+            latitude = request.data.get('latitude', None)
+            
+            if longitude is not None:
+                diary.longitude = longitude
+            if latitude is not None:
+                diary.latitude = latitude
+        else:
+            # galleries_location 필드가 있는 경우
+            galleries_location = request.data.get('galleries_location', None)
+            if galleries_location:
+                diary.galleries_location = galleries_location
+            else:
+                diary.galleries_location = None
 
         diary.final_text = content
         diary.save()

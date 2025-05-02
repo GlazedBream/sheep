@@ -6,13 +6,6 @@ from django.db import models
 class Picture(models.Model):
     picture_id = models.AutoField(primary_key=True)
     picture_content_url = models.CharField(max_length=255)
-    timestamp = models.DateTimeField(null=True, blank=True)
-    longitude = models.DecimalField(
-        max_digits=10, decimal_places=6, null=True, blank=True
-    )
-    latitude = models.DecimalField(
-        max_digits=10, decimal_places=6, null=True, blank=True
-    )
 
     def __str__(self):
         return f"Picture {self.picture_id}"
@@ -27,18 +20,6 @@ class Location(models.Model):
 
     def __str__(self):
         return f"{self.region_name} - {self.specific_name}"
-
-
-class EventPicture(models.Model):
-    event = models.ForeignKey("events.Event", on_delete=models.CASCADE)
-    picture = models.ForeignKey(Picture, on_delete=models.CASCADE)
-    is_selected_picture = models.BooleanField()
-
-    class Meta:
-        unique_together = ("event", "picture")
-
-    def __str__(self):
-        return f"EventPicture: Event {self.event_id}, Picture {self.picture_id}"
 
 
 class PictureKeyword(models.Model):

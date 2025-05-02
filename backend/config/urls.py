@@ -9,7 +9,8 @@ urlpatterns = [
     path("api/diaries/", include("diaries.urls")),
     path("api/events/", include("events.urls")),
     path("api/logs/", include("logs.urls")),
-    # galleries, stores 미구현
+    path("api/galleries/", include("galleries.urls")),
+    # stores 미구현
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-swagger-ui"),

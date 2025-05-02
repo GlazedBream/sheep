@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from galleries.models import Location
 from diaries.models import Diary
-from .models import Event, Memo, Keyword, EventKeyword
+from .models import Event, Memo, Keyword, EventKeyword, Timeline
 import os
 
 
@@ -17,6 +17,12 @@ class KeywordSerializer(serializers.ModelSerializer):
         fields = ["content", "source_type"]
 
 
+class TimelineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Timeline
+        fields = ["timeline_id", "diary_date", "diary_id"]
+
+
 class EventSerializer(serializers.ModelSerializer):
     if os.getenv("USE_GEOLOCATION_BYPASS", "False").lower() == "true":
         longitude = serializers.FloatField(required=False, allow_null=True)
@@ -26,12 +32,9 @@ class EventSerializer(serializers.ModelSerializer):
             queryset=Location.objects.all()
         )
 
-    diary_id = serializers.PrimaryKeyRelatedField(
-        queryset=Diary.objects.all(), required=False, allow_null=True
-    )
     title = serializers.CharField(max_length=255, required=False, allow_null=True)
     start_time = serializers.DateTimeField(required=True)
-    memos = MemoSerializer(many=True)  # read_only 제거
+    memos = MemoSerializer(many=True, required=False)
     keywords = KeywordSerializer(many=True, required=False)
 
     class Meta:
@@ -39,11 +42,10 @@ class EventSerializer(serializers.ModelSerializer):
         if os.getenv("USE_GEOLOCATION_BYPASS", "False").lower() == "true":
             fields = [
                 "event_id",
-                "diary_id",
+                "start_time",
                 "title",
                 "longitude",
                 "latitude",
-                "start_time",
                 "event_emotion_id",
                 "weather",
                 "is_selected_event",
@@ -53,10 +55,9 @@ class EventSerializer(serializers.ModelSerializer):
         else:
             fields = [
                 "event_id",
-                "diary_id",
+                "start_time",
                 "title",
                 "location_id",
-                "start_time",
                 "event_emotion_id",
                 "weather",
                 "is_selected_event",
@@ -69,15 +70,22 @@ class EventSerializer(serializers.ModelSerializer):
         keywords_data = validated_data.pop("keywords", [])
         user = self.context["request"].user
 
+        # Timeline 생성 또는 가져오기
+        diary_date = validated_data["diary_date"]
+        timeline, created = Timeline.objects.get_or_create(
+            diary_date=diary_date, user_id=user
+        )
+
         # Event 생성
         event = Event.objects.create(
-            user_id=user,
+            timeline_id=timeline,
             start_time=validated_data["start_time"],
             event_emotion_id=validated_data.get("event_emotion_id", 1),
             weather=validated_data.get("weather", "sunny"),
             is_selected_event=validated_data.get("is_selected_event", False),
             longitude=validated_data.get("longitude", None),
             latitude=validated_data.get("latitude", None),
+            title=validated_data.get("title", None),
         )
 
         # Memo 생성

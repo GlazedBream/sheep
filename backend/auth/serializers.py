@@ -41,16 +41,89 @@ class SignupSerializer(serializers.ModelSerializer):
 
 
 class SendCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField(
+        help_text="인증번호를 받을 이메일 주소"
+    )
+
+    class Meta:
+        extra_kwargs = {
+            'email': {
+                'example': 'user@example.com'
+            }
+        }
+
+    class Meta:
+        extra_kwargs = {
+            'email': {
+                'example': 'user@example.com'
+            }
+        }
 
 
 class VerifyCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    code = serializers.IntegerField(
-        validators=[MinValueValidator(100000), MaxValueValidator(999999)]
+    email = serializers.EmailField(
+        help_text="인증번호를 받은 이메일 주소"
     )
+    code = serializers.IntegerField(
+        validators=[MinValueValidator(100000), MaxValueValidator(999999)],
+        help_text="6자리 숫자로 구성된 인증번호"
+    )
+
+    class Meta:
+        extra_kwargs = {
+            'email': {
+                'example': 'user@example.com'
+            },
+            'code': {
+                'example': 123456
+            }
+        }
+
+    class Meta:
+        extra_kwargs = {
+            'email': {
+                'example': 'user@example.com'
+            },
+            'code': {
+                'example': 123456
+            }
+        }
 
 
 class SocialLoginSerializer(serializers.Serializer):
     # 미구현
     pass
+
+class TokenRefreshSerializer(serializers.Serializer):
+    refresh = serializers.CharField(
+        help_text="JWT 리프레시 토큰",
+        style={'input_type': 'password'}
+    )
+
+    class Meta:
+        extra_kwargs = {
+            'refresh': {
+                'example': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...'
+            }
+        }
+
+class TokenObtainPairSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+        help_text="사용자 이메일"
+    )
+    password = serializers.CharField(
+        help_text="사용자 비밀번호",
+        style={'input_type': 'password'}
+    )
+
+    class Meta:
+        extra_kwargs = {
+            'email': {
+                'example': 'user@example.com',
+                'description': '사용자 이메일 주소'
+            },
+            'password': {
+                'example': 'your_password',
+                'description': '사용자 비밀번호'
+            }
+        }

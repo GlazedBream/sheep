@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Event
-from .serializers import EventSerializer
+from .models import Event, Timeline
+from .serializers import EventSerializer, TimelineSerializer
 from datetime import datetime
 from drf_spectacular.utils import (
     extend_schema,
@@ -13,32 +13,31 @@ from drf_spectacular.utils import (
 )
 
 
-class EventCreateView(APIView):
+class TimelineCreateView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = EventSerializer
+    serializer_class = TimelineSerializer
     """
-    API-E006: 이벤트 생성
-    POST /api/events/
+    API-E006: 타임라인 생성
+    POST /api/events/timeline/
 
-    201 Created: 이벤트가 성공적으로 생성됨
+    201 Created: 타임라인이 성공적으로 생성됨
     400 Bad Request: 요청 데이터가 유효하지 않음
     401 Unauthorized: 인증되지 않은 사용자
 
-    필수 요청 필드:
-    - start_time: 이벤트 시작 시간 (ISO 8601 형식)
-
-    선택적 요청 필드:
-    - diary_id: 관련 일기 ID (없으면 null)
-    - title: 이벤트 제목 (없으면 null)
-    - longitude: 경도 (없으면 null)
-    - latitude: 위도 (없으면 null)
-    - event_emotion_id: 이벤트 감정 상태 ID (기본값: 1)
-    - weather: 날씨 (기본값: "sunny")
-    - is_selected_event: 선택된 이벤트 여부 (기본값: false)
-    - memos: 이벤트 메모 배열 (기본값: 빈 배열)
-    - keywords: 이벤트 키워드 배열 (기본값: 빈 배열)
-        - content: 키워드 내용 (필수)
-        - source_type: 키워드 출처 (선택, 기본값: "from_user")
+    요청 필드:
+    - diary_date: 다이어리 날짜 (필수, YYYY-MM-DD 형식)
+    - events: 이벤트 배열 (필수)
+        - start_time: 이벤트 시작 시간 (필수, ISO 8601 형식)
+        - longitude: 경도 (선택, 없으면 null)
+        - latitude: 위도 (선택, 없으면 null)
+        - title: 이벤트 제목 (선택, 없으면 null)
+        - event_emotion_id: 이벤트 감정 상태 ID (선택, 기본값: 1)
+        - weather: 날씨 (선택, 기본값: "sunny")
+        - is_selected_event: 선택된 이벤트 여부 (선택, 기본값: false)
+        - memos: 이벤트 메모 배열 (선택, 기본값: 빈 배열)
+        - keywords: 이벤트 키워드 배열 (선택, 기본값: 빈 배열)
+            - content: 키워드 내용 (필수)
+            - source_type: 키워드 출처 (선택, 기본값: "from_user")
     """
 
     @extend_schema(
@@ -48,79 +47,212 @@ class EventCreateView(APIView):
             400: OpenApiTypes.OBJECT,
             401: OpenApiTypes.OBJECT,
         },
+        parameters=[
+            OpenApiParameter(
+                name="diary_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="다이어리 날짜 (필수, YYYY-MM-DD 형식)",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="events",
+                type=OpenApiTypes.OBJECT,
+                location=OpenApiParameter.QUERY,
+                description="이벤트 배열 (필수)",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="start_time",
+                type=OpenApiTypes.DATETIME,
+                location=OpenApiParameter.QUERY,
+                description="이벤트 시작 시간 (필수, ISO 8601 형식)",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="longitude",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description="경도 (선택, 없으면 null)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="latitude",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description="위도 (선택, 없으면 null)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="title",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="이벤트 제목 (선택, 없으면 null)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="event_emotion_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="이벤트 감정 상태 ID (선택, 기본값: 1)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="weather",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="날씨 (선택, 기본값: 'sunny')",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="is_selected_event",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="선택된 이벤트 여부 (선택, 기본값: false)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="memos",
+                type=OpenApiTypes.OBJECT,
+                location=OpenApiParameter.QUERY,
+                description="이벤트 메모 배열 (선택, 기본값: 빈 배열)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="keywords",
+                type=OpenApiTypes.OBJECT,
+                location=OpenApiParameter.QUERY,
+                description="이벤트 키워드 배열 (선택, 기본값: 빈 배열)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="content",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="키워드 내용 (필수)",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="source_type",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="키워드 출처 (선택, 기본값: 'from_user')",
+                required=False,
+            ),
+        ],
         examples=[
             OpenApiExample(
                 name="Success Example",
                 value={
-                    "start_time": "2025-05-01T10:00:00+09:00",
-                    "longitude": 127.0,
-                    "latitude": 37.0,
-                    "title": "공원 산책",
-                    "event_emotion_id": 1,
-                    "weather": "sunny",
-                    "is_selected_event": True,
-                    "keywords": [
+                    "diary_date": "2025-05-01",
+                    "events": [
                         {
-                            "content": "산책",
-                            "source_type": "from_user"
-                        },
-                        {
-                            "content": "공원",
-                            "source_type": "from_user"
+                            "start_time": "2025-05-01T10:00:00+09:00",
+                            "longitude": 127.0,
+                            "latitude": 37.0,
+                            "title": "공원 산책",
+                            "event_emotion_id": 1,
+                            "weather": "sunny",
+                            "is_selected_event": True,
+                            "keywords": [
+                                {"content": "산책", "source_type": "from_user"},
+                                {"content": "공원", "source_type": "from_user"},
+                            ],
                         }
-                    ]
+                    ],
                 },
             ),
             OpenApiExample(
                 name="Error Example",
                 value={
-                    "start_time": ["이 필드는 필수입니다."],
+                    "diary_date": ["이 필드는 필수입니다."],
                 },
             ),
         ],
     )
     def post(self, request):
         # 현재 로그인된 유저의 ID를 가져옴
-        user_id = request.user.id
+        user = request.user
 
-        # 시리얼라이저에 데이터 전달
-        serializer = EventSerializer(data=request.data, context={"request": request})
+        # 요청 데이터에서 이벤트 배열 추출
+        events_data = request.data.get("events", [])
 
-        if serializer.is_valid():
-            # Event 생성
-            event = serializer.save(
-                user_id=user_id,
-                event_emotion=serializer.validated_data.get("event_emotion", "happy"),
-                weather=serializer.validated_data.get("weather", "sunny"),
-                is_selected_event=serializer.validated_data.get("is_selected_event", False),
+        # Timeline 생성 또는 가져오기
+        diary_date = request.data.get("diary_date")
+        if not diary_date:
+            return Response(
+                {"diary_date": ["이 필드는 필수입니다."]},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-            # Memo 처리
-            memos_data = serializer.validated_data.get("memos", [])
-            for memo_data in memos_data:
-                Memo.objects.create(event=event, **memo_data)
+        try:
+            diary_date = datetime.strptime(diary_date, "%Y-%m-%d").date()
+        except ValueError:
+            return Response(
+                {
+                    "diary_date": [
+                        "날짜 형식이 올바르지 않습니다. YYYY-MM-DD를 사용해주세요."
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        timeline, created = Timeline.objects.get_or_create(
+            diary_date=diary_date, user_id=user
+        )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # 각 이벤트 생성
+        events = []
+        for event_data in events_data:
+            # 이벤트 시리얼라이저에 데이터 전달
+            event_serializer = EventSerializer(
+                data=event_data, context={"request": request}
+            )
+
+            if event_serializer.is_valid():
+                # Event 생성
+                event = event_serializer.save()
+                events.append(event)
+            else:
+                return Response(
+                    event_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # 모든 이벤트 생성 완료 후 Timeline 시리얼라이저로 응답
+        timeline_serializer = TimelineSerializer(timeline)
+        return Response(timeline_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class EventUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = EventSerializer
     """
-    Event의 상세 정보를 조회(GET)하거나, 수정(PUT)하는 뷰.
-    """
-
-    """
-    API-E002: 이벤트 메모 불러오기
+    API-E007: 이벤트 조회/수정
     GET /api/events/{event_id}/
+    PUT /api/events/{event_id}/
 
-    200 OK
-    401 Unauthorized
-    404 Not Found
+    200 OK: 이벤트가 성공적으로 조회/수정됨
+    400 Bad Request: 요청 데이터가 유효하지 않음
+    401 Unauthorized: 인증되지 않은 사용자
+    404 Not Found: 이벤트를 찾을 수 없음
     """
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="event_id",
+                type=int,
+                location=OpenApiParameter.PATH,
+                description="이벤트의 ID",
+                required=True,
+            )
+        ],
+        responses={
+            200: EventSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+    )
     def get(self, request, event_id):
         try:
             # Event를 event_id로 조회
@@ -135,13 +267,24 @@ class EventUpdateView(APIView):
         serializer = EventSerializer(event)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    """
-    API-E003: 이벤트 메모 저장
-    PUT /api/events/{event_id}/
-
-
-    """
-
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="event_id",
+                type=int,
+                location=OpenApiParameter.PATH,
+                description="이벤트의 ID",
+                required=True,
+            )
+        ],
+        request=EventSerializer,
+        responses={
+            200: EventSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+    )
     def put(self, request, event_id):
         try:
             # Event를 event_id로 조회

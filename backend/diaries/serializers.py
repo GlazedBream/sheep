@@ -57,18 +57,36 @@ class DiarySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
-            if instance.galleries_location:
+            if hasattr(instance, 'longitude') and hasattr(instance, 'latitude'):
+                data['longitude'] = instance.longitude
+                data['latitude'] = instance.latitude
+            else:
+                data['longitude'] = None
+                data['latitude'] = None
+            data.pop('galleries_location', None)
+        else:
+            if hasattr(instance, 'galleries_location'):
                 data['longitude'] = instance.galleries_location.get('longitude')
                 data['latitude'] = instance.galleries_location.get('latitude')
-            data.pop('galleries_location', None)
+            else:
+                data['longitude'] = None
+                data['latitude'] = None
         return data
 
     def to_internal_value(self, data):
         if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            # longitude, latitude 필드가 있는 경우
             longitude = data.get('longitude')
             latitude = data.get('latitude')
             if longitude is not None and latitude is not None:
-                data['galleries_location'] = {'longitude': longitude, 'latitude': latitude}
+                data['longitude'] = longitude
+                data['latitude'] = latitude
+        else:
+            # galleries_location 필드가 있는 경우
+            galleries_location = data.get('galleries_location')
+            if galleries_location:
+                data['galleries_location'] = galleries_location
+
         return super().to_internal_value(data)
 
     def validate_keywords(self, value):
@@ -94,6 +112,20 @@ class DiarySerializer(serializers.ModelSerializer):
             final_text=validated_data['final_text'],
             emotion=emotion
         )
+
+        # 위치 정보 처리
+        if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
+            # longitude, latitude 필드가 있는 경우
+            if 'longitude' in validated_data:
+                diary.longitude = validated_data['longitude']
+            if 'latitude' in validated_data:
+                diary.latitude = validated_data['latitude']
+        else:
+            # galleries_location 필드가 있는 경우
+            if 'galleries_location' in validated_data:
+                diary.galleries_location = validated_data['galleries_location']
+
+        diary.save()
 
         # 키워드 처리
         keyword_ids = validated_data.get('keywords', [])
