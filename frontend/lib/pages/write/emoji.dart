@@ -33,3 +33,28 @@ Future<String?> showTodayEmotionDialog(BuildContext context) {
 Future<String?> showEventEmotionDialog(BuildContext context) {
   return showEmojiDialog(context, title: '이 일정에서의 기분은 어떠셨나요?');
 }
+
+/// 이모지를 숫자 emotion_id로 변환하는 함수
+int convertEmojiToId(String emoji) {
+  switch (emoji) {
+    case '😀': return 1;
+    case '😐': return 2;
+    case '😢': return 3;
+    case '😡': return 4;
+    case '😍': return 5;
+    case '😴': return 6;
+    default: return 0; // 알 수 없는 이모지일 경우 0으로 처리
+  }
+}
+
+String convertIdToEmoji(int id) {
+  switch (id) {
+    case 1: return '😀';
+    case 2: return '😐';
+    case 3: return '😢';
+    case 4: return '😡';
+    case 5: return '😍';
+    case 6: return '😴';
+    default: return '❓';
+  }
+}
