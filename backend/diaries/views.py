@@ -77,6 +77,19 @@ class DiaryCreateView(APIView):
                 except Keyword.DoesNotExist:
                     continue
 
+            # 추가된 정보 처리 (예: 타임라인, 마커 등)
+            timeline_sent = request.data.get('timeline_sent', [])
+            markers = request.data.get('markers', [])
+            camera_target = request.data.get('cameraTarget', {})
+
+            # 필요한 필드 저장
+            diary.timeline_sent = timeline_sent
+            diary.markers = markers
+            diary.camera_target = camera_target
+
+            # 일기 저장
+            diary.save()
+
             return Response(
                 {"message": "일기가 성공적으로 작성되었습니다."},
                 status=status.HTTP_201_CREATED,
@@ -243,12 +256,12 @@ class DiaryDetailView(APIView):
     GET /api/diaries/{diary_id}/
     """
 
-    def get(self, request, diary_id):
+    def get(self, request, diary_date):
         try:
-            diary = Diary.objects.get(diary_id=diary_id)
+            diary = Diary.objects.get(diary_date=diary_date)
         except Diary.DoesNotExist:
             return Response(
-                {"message": "'diary_id'에 맞는 일기가 없습니다."},
+                {"message": "'diary_date'에 맞는 일기가 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

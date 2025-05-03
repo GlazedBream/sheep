@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import '/pages/write/emoji.dart';
 
 class DiaryEntry {
-  final String date;
+  final String date; // DateTime으로만 사용
   final String text;
   final List<String> tags;
   final List<String> photos;
@@ -21,7 +21,7 @@ class DiaryEntry {
   final String emotionEmoji; // 🥳 선택된 이모지
 
   DiaryEntry({
-    required this.date,
+    required this.date, // DateTime으로 변경
     required this.text,
     required this.tags,
     required this.photos,
@@ -38,13 +38,12 @@ extension DiaryEntryExtension on DiaryEntry {
   Diary toDiary() {
     return Diary(
       id: UniqueKey().toString(),
-      date: date,
+      date: date, // date를 diary_date로 변환
       text: text,
       tags: tags,
       photos: photos,
       longitude: longitude,
       latitude: latitude,
-
       timeline: timeline
           .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
           .toList(),
@@ -57,25 +56,26 @@ extension DiaryEntryExtension on DiaryEntry {
         'lat': cameraTarget.latitude,
         'lng': cameraTarget.longitude,
       },
-
       emotionEmoji: emotionEmoji,
-
     );
   }
 }
 
+
 class DiaryPage extends StatefulWidget {
   final DiaryEntry entry;
   final String emotionEmoji;
+  final String date;  // diary_date로 전달
 
   const DiaryPage({
     super.key,
     required this.entry,  // DiaryEntry 객체 전달
-    required this.emotionEmoji,  // 이모지 전달
+    required this.emotionEmoji,
+    required this.date  // diary_date 전달
   });
 
   @override
-  State<DiaryPage> createState() => _DiaryPageState();
+  _DiaryPageState createState() => _DiaryPageState();
 }
 
 class _DiaryPageState extends State<DiaryPage> {
@@ -116,17 +116,33 @@ class _DiaryPageState extends State<DiaryPage> {
   }
 
   Future<void> _sendDiaryToServer(DiaryEntry entry, String finalText) async {
-    final url = Uri.parse('http://10.0.2.2:8000/api/diaries/'); // TODO: 실제 API 주소로 변경
+    final url = Uri.parse('http://10.0.2.2:8000/api/diaries/'); // 실제 API 주소로 변경
     final body = jsonEncode({
       'diary_date': widget.entry.date,
       'final_text': _textController.text,
       'keywords': widget.entry.tags,
       'emotion': convertEmojiToId(widget.entry.emotionEmoji),
+      'timeline_sent': widget.entry.timeline
+          .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
+          .toList(),
+      'markers': widget.entry.markers
+          .map((marker) => {
+        'id': marker.markerId.value,
+        'lat': marker.position.latitude,
+        'lng': marker.position.longitude,
+        // 'title': marker.infoWindow.title ?? '',
+        // 'snippet': marker.infoWindow.snippet ?? ''
+      })
+          .toList(),
+      'cameraTarget': {
+        'lat': widget.entry.cameraTarget.latitude,
+        'lng': widget.entry.cameraTarget.longitude,
+      },
     });
 
     final headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYxNDYzNTI5LCJpYXQiOjE3NDYxMDM1MjksImp0aSI6ImMzNDQ4YWM4YTZiNzQzYTA4M2ZjOTU0ZTlhM2M4ZTI2IiwidXNlcl9pZCI6Mn0.DZ4ydqTFLAVGmX5GguwG8AbjrXnWBEgYavOShHpYEJk', // 필요한 경우
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYxNjE2MjA2LCJpYXQiOjE3NDYyNTYyMDYsImp0aSI6ImNlZWZkNjY1MmU5ODRkZWRiN2NkYmVmMTMxN2JlYjM4IiwidXNlcl9pZCI6MX0.Fo7E7VxVar7Fw6MoBZ3DupjG5f8ySToL4Tej8gZQ2jk', // 필요한 경우
     };
 
     try {

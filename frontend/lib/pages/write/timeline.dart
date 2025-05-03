@@ -371,7 +371,7 @@ class _WritePageState extends State<WritePage> {
                     ];
 
                     final newEntry = DiaryEntry(
-                      date: DateTime.now().toIso8601String().split('T').first,
+                      date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
                       text: "자동 생성된 다이어리 요약 내용입니다.",
                       tags: ["자동요약", "타임라인"],
                       photos: [],
@@ -389,6 +389,7 @@ class _WritePageState extends State<WritePage> {
                         builder: (context) => DiaryPage(
                           entry: newEntry,
                           emotionEmoji: newEntry.emotionEmoji,
+                          date: newEntry.date,
                         ),
                       ),
                     );
