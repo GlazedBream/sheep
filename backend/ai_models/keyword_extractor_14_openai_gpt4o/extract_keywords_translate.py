@@ -9,8 +9,10 @@ import re
 import time
 
 start_time = time.time()
+from dotenv import load_dotenv
 
-api_key = "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"
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
 # client ="
 client = OpenAI(api_key=api_key)
 
