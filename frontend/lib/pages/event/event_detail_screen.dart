@@ -12,14 +12,14 @@ class EventDetailScreen extends StatefulWidget {
   final String emotionEmoji;
   final String timelineItem;
   final LatLng selectedLatLng;
-  // final String locationName;
+  final String location;
 
   const EventDetailScreen({
     required this.selectedDate,
     required this.emotionEmoji,
     required this.timelineItem,
     required this.selectedLatLng,
-    // required this.locationName,
+    required this.location,
     super.key,
   });
 
@@ -49,11 +49,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     super.initState();
     selectedEmoji = widget.emotionEmoji;
 
-    // 갤러리에서 초기 2장 자동 선택 (실제 파일 경로로 대체 필요)
-    imageSlots = [
-      'assets/images/test0.jpg',
-      'assets/images/test1.jpg',
-    ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final images = locationImages[widget.location] ?? [];
+
+      setState(() {
+        if (imageSlots[0] == null && images.isNotEmpty) {
+          imageSlots[0] = images[0];
+        }
+        if (imageSlots[1] == null && images.length > 1) {
+          imageSlots[1] = images[1];
+        }
+      });
+    });
   }
 
   @override
@@ -76,7 +83,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       "title": title,
       "longitude": longitude,
       "latitude": latitude,
-      "time": time,
+      "start_time": time,
       "emotion": emotion,
       "memos": memos,
       "keywords": keywords,
@@ -215,6 +222,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     final formattedDate = DateFormat('yyyy.MM.dd EEEE').format(widget.selectedDate);
     final formattedTime = DateFormat('HH:mm').format(widget.selectedDate);
+    // final images = locationImages[widget.location] ?? [];
+    final images = locationImages[widget.location] ?? [];
+
+    // 디버깅 로그 출력
+    print('location: ${widget.location}');
+    print('images: $images');
+
+    if (imageSlots[0] == null && images.isNotEmpty) {
+      imageSlots[0] = images.first;
+    }
 
     Widget buildInteractiveBox(int index) {
       return GestureDetector(
@@ -231,7 +248,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
           if (result != null && result.isNotEmpty) {
             setState(() {
-              imageSlots[index] = result.first;
+              if (result.length == 2) {
+                // 두 개를 동시에 업데이트
+                imageSlots[0] = result[0];
+                imageSlots[1] = result[1];
+              } else {
+                // 한 개만 선택된 경우 해당 인덱스만 업데이트
+                imageSlots[index] = result.first;
+              }
             });
           }
         },

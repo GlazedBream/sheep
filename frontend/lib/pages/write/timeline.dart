@@ -50,7 +50,7 @@ class _WritePageState extends State<WritePage> {
     "16:30 - Walk at Han River",
     "18:00 - Shopping at Myeongdong",
     "19:30 - Back home & rest",
-    "20:30 - Dinner with friends near Jongno",
+    "20:30 - Dinner with Friends near Jongno",
     "22:30 - Final return home",
   ];
 
@@ -141,6 +141,15 @@ class _WritePageState extends State<WritePage> {
 
       await prefs.setBool(dateKey, true);
     }
+  }
+
+  String extractLocation(String timelineText) {
+    for (String location in locationMap.keys) {
+      if (timelineText.contains(location)) {
+        return location;
+      }
+    }
+    return "Unknown"; // 예외처리
   }
 
   Future<void> _loadSavedEvents() async {
@@ -301,16 +310,16 @@ class _WritePageState extends State<WritePage> {
                 return GestureDetector(
                   onTap: () async {
                     final selectedTimeline = gpsTimeline[index];
+                    String location = extractLocation(gpsTimeline[index]);
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-
                         builder: (context) => EventDetailScreen(
                           selectedDate: widget.selectedDate,
                           emotionEmoji: emotionEmoji,
                           timelineItem: selectedTimeline,
                           selectedLatLng: getLatLngFromTimelineItem(gpsTimeline[index]),
-                          // locationName: selectedEvent.locationName, // 예: "Itaewon"
+                          location: location,
                         ),
                       ),
                     );
