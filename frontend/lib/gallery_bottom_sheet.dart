@@ -8,11 +8,11 @@ class GalleryBottomSheet extends StatefulWidget {
 }
 
 class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
-  List<int> selectedIndexes = [];
+  List<int> selectedIndexes = [];  // 선택된 이미지 인덱스를 저장할 리스트
 
   @override
   Widget build(BuildContext context) {
-    final photos = List.generate(14, (index) => '사진 $index');
+    final mockPhotos = List.generate(9, (i) => 'assets/images/test$i.jpg');
 
     return DraggableScrollableSheet(
       initialChildSize: 0.5,
@@ -24,7 +24,7 @@ class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
           const Padding(
             padding: EdgeInsets.all(12.0),
             child: Text(
-              "오늘 일기에 들어갈 사진을 선택해주세요\n최대 4장까지 가능합니다",
+              "오늘 일기에 들어갈 사진을 선택해주세요\n최대 2장까지 가능합니다",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16),
             ),
@@ -33,14 +33,15 @@ class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
             child: GridView.builder(
               controller: controller,
               padding: const EdgeInsets.all(10),
-              itemCount: photos.length + 1,
+              itemCount: mockPhotos.length + 1,  // 사진첩 추가 버튼 포함
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 3,  // 한 줄에 3개의 이미지를 보여줌
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
               ),
               itemBuilder: (context, index) {
-                if (index == photos.length) {
+                if (index == mockPhotos.length) {
+                  // 사진첩 버튼
                   return GestureDetector(
                     onTap: () {
                       print("사진첩으로 이동");
@@ -52,25 +53,29 @@ class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
                   );
                 }
 
-                final isSelected = selectedIndexes.contains(index);
-                final selectedOrder = selectedIndexes.indexOf(index) + 1;
+                final isSelected = selectedIndexes.contains(index);  // 이미지 선택 여부
+                final selectedOrder = selectedIndexes.indexOf(index) + 1;  // 선택된 이미지 번호
 
                 return GestureDetector(
                   onTap: () {
                     setState(() {
                       if (isSelected) {
-                        selectedIndexes.remove(index);
-                      } else if (selectedIndexes.length < 4) {
-                        selectedIndexes.add(index);
+                        selectedIndexes.remove(index);  // 이미지 선택 해제
+                      } else if (selectedIndexes.length < 2) {
+                        selectedIndexes.add(index);  // 최대 2장만 선택
                       }
                     });
                   },
                   child: Stack(
                     children: [
-                      Container(
-                        color: Colors.grey[200],
-                        child: Center(child: Text(photos[index])),
+                      // 이미지 표시
+                      Image.asset(
+                        mockPhotos[index],
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
                       ),
+                      // 선택된 이미지에 번호 표시
                       if (isSelected)
                         Positioned(
                           top: 5,
@@ -79,7 +84,7 @@ class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
                             radius: 12,
                             backgroundColor: Colors.yellow,
                             child: Text(
-                              '$selectedOrder',
+                              '$selectedOrder',  // 선택된 이미지 번호
                               style: const TextStyle(color: Colors.black),
                             ),
                           ),
@@ -96,7 +101,11 @@ class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
               padding: const EdgeInsets.all(12),
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  final selectedPaths = selectedIndexes
+                      .map((i) => mockPhotos[i])  // 선택된 이미지 경로 리스트
+                      .toList();
+
+                  Navigator.pop(context, selectedPaths);  // 선택된 이미지 경로 반환
                 },
                 child: const Text("완료"),
               ),
