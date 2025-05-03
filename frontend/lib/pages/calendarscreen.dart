@@ -23,30 +23,30 @@ class CalendarScreen extends StatefulWidget {
 extension DiaryModelExtension on Diary {
   DiaryEntry toDiaryEntry() {
     return DiaryEntry(
-      date: date,
       text: text,
       tags: tags,
+      date: date,
       photos: photos,
       latitude: latitude,
       longitude: longitude,
 
       timeline: timeline
           .map((e) => LatLng(e['lat'] ?? 0.0, e['lng'] ?? 0.0))
-          .toList(),
+          .toList(),  // 타임라인 좌표 변환
 
       cameraTarget: LatLng(
         cameraTarget['lat'] ?? 0.0,
         cameraTarget['lng'] ?? 0.0,
-      ),
+      ),  // 지도 중심 좌표 변환
 
       markers: markers.map((marker) {
         return Marker(
           markerId: MarkerId(marker['id'] ?? UniqueKey().toString()),
           position: LatLng(marker['lat'] ?? 0.0, marker['lng'] ?? 0.0),
         );
-      }).toSet(),
+      }).toSet(),  // 마커 변환
 
-      emotionEmoji: emotionEmoji,  // emotionEmoji를 DiaryEntry로 전달
+      emotionEmoji: emotionEmoji,  // 이모지 전달
     );
   }
 }
@@ -94,7 +94,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       Navigator.of(context).push(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              ReviewPage(entry: diary.toDiaryEntry()),
+              ReviewPage(
+                entry: diary.toDiaryEntry(),
+                date: dateKey,  // ✅ 날짜 문자열 전달
+              ),
           // Diary → DiaryEntry 변환 필요
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);

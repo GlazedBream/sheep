@@ -9,6 +9,7 @@ User = get_user_model()
 
 class Diary(models.Model):
     diary_id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     diary_date = models.DateField(default=timezone.now)
@@ -20,6 +21,10 @@ class Diary(models.Model):
         latitude = models.FloatField(null=True, blank=True)
     else:
         galleries_location = models.JSONField(null=True, blank=True)
+
+    timeline_sent = models.JSONField(null=True, blank=True)
+    markers = models.JSONField(null=True, blank=True)
+    camera_target = models.JSONField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -47,3 +52,4 @@ class DiaryKeyword(models.Model):
 
     def __str__(self):
         return f"Keyword {self.keyword} for Diary {self.diary.id}"
+

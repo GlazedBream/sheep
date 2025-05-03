@@ -8,5 +8,5 @@ from .views import (
 urlpatterns = [
     path("", DiaryCreateView.as_view(), name="diary_create"),
     path("dates/", DiaryByMonthView.as_view(), name="diary-by-month"),
-    path("<int:diary_id>/", DiaryDetailView.as_view(), name="diary_detail"),
+    path("<str:diary_date>/", DiaryDetailView.as_view(), name="diary_detail"),
 ]

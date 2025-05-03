@@ -3,15 +3,17 @@ import 'package:intl/intl.dart';
 import '../../data/diary_data.dart';
 import '../write/diary_page.dart';
 import 'package:provider/provider.dart';
-import '../../data/diary_provider.dart'; // 경로는 실제 위치에 맞게 조정
+import '../../data/diary_provider.dart';
 import '../../data/diary.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class ReviewPage extends StatefulWidget {
   final DiaryEntry entry;
+  final String date;
 
-  const ReviewPage({super.key, required this.entry});
+  const ReviewPage({super.key, required this.entry, required this.date});
 
   @override
   State<ReviewPage> createState() => _ReviewPageState();
@@ -19,14 +21,77 @@ class ReviewPage extends StatefulWidget {
 
 class _ReviewPageState extends State<ReviewPage> {
   bool showMap = true;
-  int _selectedIndex = 1; // ✅ Calendar 탭이 중심이라고 가정 (0: Home, 1: Calendar, 2: Profile)
+  int _selectedIndex = 1; // BottomNavigation 현재 탭 인덱스
+  Map<String, dynamic>? diaryEntry;
+  LatLng cameraTarget = const LatLng(37.5665, 126.9780);  // 기본값
+  List<LatLng> timelinePolyline = [];
+  Set<Marker> markers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDiaryData();
+  }
+
+  Future<void> fetchDiaryData() async {
+    final formattedDate = widget.date;
+    // print(formattedDate);// 이미 전달된 date 사용
+    final url = Uri.parse('http://10.0.2.2:8000/api/diaries/$formattedDate/');  // API 엔드포인트 URL
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYxNjE2MjA2LCJpYXQiOjE3NDYyNTYyMDYsImp0aSI6ImNlZWZkNjY1MmU5ODRkZWRiN2NkYmVmMTMxN2JlYjM4IiwidXNlcl9pZCI6MX0.Fo7E7VxVar7Fw6MoBZ3DupjG5f8ySToL4Tej8gZQ2jk', // 필요한 경우
+    };
+
+    try {
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        print(data);
+
+        // ❗ diaryEntry로 먼저 세팅하지 않고 data에서 직접 파싱
+        final target = LatLng(
+          data['camera_target']['lat'],
+          data['camera_target']['lng'],
+        );
+
+        final timeline = (data['timeline_sent'] as List).map<LatLng>((point) {
+          return LatLng(point['lat'], point['lng']);
+        }).toList();
+
+        final markerSet = (data['markers'] as List).map<Marker>((marker) {
+          return Marker(
+            markerId: MarkerId(marker['id']),
+            position: LatLng(marker['lat'], marker['lng']),
+          );
+        }).toSet();
+
+        setState(() {
+          diaryEntry = data;
+          cameraTarget = target;
+          timelinePolyline = timeline;
+          markers = markerSet;
+        });
+      } else {
+        print("2");
+        setState(() {
+          diaryEntry = null;  // 데이터가 없으면 null로 처리
+        });
+      }
+    } catch (e) {
+      print("3");
+      setState(() {
+        diaryEntry = null;  // 예외 처리
+      });
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    // 👉 실제로는 아래에 각 화면으로 이동하는 로직 추가 필요
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/home');
@@ -47,95 +112,120 @@ class _ReviewPageState extends State<ReviewPage> {
         title: const Text("📖 Diary Review"),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Diary',
+              onPressed: () {
+                if (diaryEntry != null) {
+                  DiaryEntry parsedDiary = DiaryEntry(
+                    date: diaryEntry!['date'] ?? '', // 실제 String 타입으로 저장되었다고 가정
+                    text: diaryEntry!['finalText'] ?? '',
+                    tags: List<String>.from(diaryEntry!['keywords'] ?? []),
+                    photos: List<String>.from(diaryEntry!['photos'] ?? []),
+                    latitude: (diaryEntry!['latitude'] ?? 0.0).toDouble(),
+                    longitude: (diaryEntry!['longitude'] ?? 0.0).toDouble(),
+                    timeline: (diaryEntry!['timeline'] as List<dynamic>? ?? []).map((e) {
+                      return LatLng(e['lat'] ?? 0.0, e['lng'] ?? 0.0);
+                    }).toList(),
+                    markers: <Marker>{}, // 기본 비어 있는 마커 세트
+                    cameraTarget: const LatLng(0.0, 0.0), // 기본 중심 좌표 설정
+                    emotionEmoji: diaryEntry!['emotionEmoji'] ?? '',
+                  );
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DiaryPage(
+                        entry: parsedDiary,
+                        emotionEmoji: parsedDiary.emotionEmoji,
+                        date: widget.date,  // 여긴 String 그대로 넘겨줘도 돼
+                      ),
+                    ),
+                  );
+                }
+              },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: diaryEntry == null
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            Text(
-              "🗓 ${widget.entry.date}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "🗓 ${DateFormat('yyyy-MM-dd').format(DateTime.parse(widget.date))}",
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "오늘의 기분: ${diaryEntry!['emotionEmoji'] ?? 'No emotion'}",
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ChoiceChip(
                   label: const Text("🗺 Map"),
-                  selected: showMap,
-                  onSelected: (_) => setState(() => showMap = true),
+                  selected: true,
+                  onSelected: (_) {},
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: const Text("📷 Photos"),
-                  selected: !showMap,
-                  onSelected: (_) => setState(() => showMap = false),
+                  selected: false,
+                  onSelected: (_) {},
                 ),
               ],
             ),
             const SizedBox(height: 16),
-
-            showMap
-                ? _buildMapTimeline()
-                : _buildPhotoSlider(),
-
+            _buildMapTimeline(),
             const SizedBox(height: 24),
-
-            const Text("📝 다이어리 내용", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                widget.entry.text,
-                style: const TextStyle(fontSize: 15, height: 1.5),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: widget.entry.tags.map((tag) => Chip(label: Text(tag))).toList(),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 150), // 원하는 만큼 높이 조절
-              child: Center(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DiaryPage(
-                          entry: widget.entry,  // DiaryEntry 객체를 전달
-                          emotionEmoji: widget.entry.emotionEmoji,  // DiaryEntry에서 emotionEmoji 전달
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Edit"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightGreen,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("📝 다이어리 내용", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    diaryEntry?['final_text'] ?? 'No content available',
+                    style: const TextStyle(fontSize: 15, height: 1.5),
                   ),
                 ),
-              ),
-            ),
+
+                const SizedBox(height: 24),
+                const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: (diaryEntry?['tags'] as List<dynamic>?)
+                      ?.map<Widget>((tag) => Chip(label: Text(tag.toString())))
+                      .toList()
+                      ?? [const Text('No tags')],
+                ),
+              ],
+            )
           ],
         ),
       ),
     );
   }
 
+  // 지도 표시용 위젯
   Widget _buildMapTimeline() {
     return Container(
       height: 200,
@@ -145,42 +235,23 @@ class _ReviewPageState extends State<ReviewPage> {
       ),
       clipBehavior: Clip.hardEdge,
       child: GoogleMap(
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(37.5665, 126.9780), // 서울시청
+        initialCameraPosition: CameraPosition(
+          target: cameraTarget,
           zoom: 13,
         ),
-        myLocationEnabled: true, // 현재 위치 표시
-        myLocationButtonEnabled: true, // 위치 버튼
-        zoomControlsEnabled: false, // 확대/축소 버튼 숨김
-        onMapCreated: (GoogleMapController controller) {
-          // 컨트롤러 저장하려면 변수로 받아와야 함
+        markers: markers,
+        polylines: {
+          Polyline(
+            polylineId: const PolylineId("timeline"),
+            points: timelinePolyline,
+            color: Colors.blue,
+            width: 5,
+          )
         },
-      ),
-    );
-  }
-
-  Widget _buildPhotoSlider() {
-    if (widget.entry.photos.isEmpty) {
-      return const Text("No photos available.");
-    }
-
-    return SizedBox(
-      height: 250,
-      child: PageView.builder(
-        itemCount: widget.entry.photos.length,
-        itemBuilder: (context, index) {
-          final photoUrl = widget.entry.photos[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                photoUrl,
-                fit: BoxFit.cover,
-              ),
-            ),
-          );
-        },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        zoomControlsEnabled: false,
+        onMapCreated: (GoogleMapController controller) {},
       ),
     );
   }
