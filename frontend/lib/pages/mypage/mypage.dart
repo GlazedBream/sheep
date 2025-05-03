@@ -5,6 +5,12 @@ import '/pages/write/timeline.dart';
 import '/pages/starting/login.dart';
 import 'editinfo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'diary_decoration_page.dart';
+import 'purchase_history_page.dart';
+import 'store_page.dart';
+import 'terms_tabs_page.dart';
+import 'package:test_sheep/pages/mypage/purchase_history_page.dart' as purchase;
+import 'package:test_sheep/pages/mypage/store_page.dart' as store;
 
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
@@ -96,14 +102,50 @@ class MyPageScreen extends StatelessWidget {
                 );
               },
             ),
-            _buildButton(context, '이용약관, 개인정보동의서 및 AI처리방침'),
+            _buildButton(
+              context,
+              '이용약관, 개인정보동의서 및 AI처리방침',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TermsTabsPage()),
+                );
+              },
+            ),
 
             const SizedBox(height: 24),
             const Text('기타',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            _buildButton(context, '다이어리 꾸미기'),
-            _buildButton(context, 'Store'),
-            _buildButton(context, '구매 이력'),
+            _buildButton(
+              context,
+              '다이어리 꾸미기',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DiaryDecorationPage()),
+                );
+              },
+            ),
+            _buildButton(
+              context,
+              'Store',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const StorePage()),
+                );
+              },
+            ),
+            _buildButton(
+              context,
+              '구매 이력',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const purchase.PurchaseHistoryPage()),
+                );
+              },
+            ),
 
             const SizedBox(height: 24),
             _buildBlueButton(context, '로그아웃'),
