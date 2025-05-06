@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '/pages/event/event_detail_screen.dart';
 import '/pages/review/review_page.dart';
 import '/pages/mypage/mypage.dart';
-import '/data/diary_data.dart';
 import '/pages/calendarscreen.dart';
 import 'diary_page.dart';
 import 'package:intl/intl.dart';

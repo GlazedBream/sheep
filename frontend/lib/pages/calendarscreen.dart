@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'review/review_page.dart';
 import 'write/timeline.dart'; // ✅ WritePage import 추가
-import '../data/diary_data.dart';
 import 'package:intl/intl.dart';
 import 'write/emoji.dart'; // ✅ 감정 이모지 다이얼로그 함수 import 추가
 import '/pages/mypage/mypage.dart';

@@ -9,12 +9,13 @@ User = get_user_model()
 
 class Diary(models.Model):
     diary_id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=255, null=True, blank=True)
+    # title = models.CharField(max_length=255, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     diary_date = models.DateField(default=timezone.now)
     final_text = models.TextField()
     emotion = models.ForeignKey("Emotion", on_delete=models.SET_NULL, null=True, blank=True)
+    keywords = models.JSONField(null=True, blank=True)
     
     if os.getenv('USE_GEOLOCATION_BYPASS', 'False').lower() == 'true':
         longitude = models.FloatField(null=True, blank=True)
