@@ -235,13 +235,12 @@ class DiarySerializer(serializers.ModelSerializer):
             data['timeline'] = [
                 {'lat': point['lat'], 'lng': point['lng']} for point in data['timeline_sent']
             ]
-            
         if 'markers' in data:
         # 'markers' 처리
             data['markers'] = [
             {'id': marker['id'], 'lat': marker['lat'], 'lng': marker['lng']} for marker in data['markers']
             ]
-
+            
         if 'camera_target' in data:
             # 'camera_target' 처리
             data['camera_target'] = {
