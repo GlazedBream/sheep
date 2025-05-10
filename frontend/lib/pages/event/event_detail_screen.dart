@@ -6,19 +6,13 @@ import '/pages/write/emoji.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:test_sheep/constants/location_data.dart';
-import '/models/image_keyword.dart';  // ImageKeywordExtractor를 여기서 import
-import 'dart:io';
-import 'package:shared_preferences/shared_preferences.dart';
-
 
 class EventDetailScreen extends StatefulWidget {
-
   final DateTime selectedDate;
   final String emotionEmoji;
   final String timelineItem;
   final LatLng selectedLatLng;
   final String location;
-  final int index;
 
   const EventDetailScreen({
     required this.selectedDate,
@@ -26,7 +20,6 @@ class EventDetailScreen extends StatefulWidget {
     required this.timelineItem,
     required this.selectedLatLng,
     required this.location,
-    required this.index,
     super.key,
   });
 
@@ -36,9 +29,6 @@ class EventDetailScreen extends StatefulWidget {
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
   String selectedEmoji = '';
-  String memo = "";
-  String photoUrl = "";
-
   List<String?> imageSlots = [null, null]; // 두 개의 슬롯
   final TextEditingController memoController = TextEditingController();
   Set<String> selectedKeywords = {};
@@ -50,16 +40,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return parts.length > 1 ? parts[1] : '';
   }
 
-  // final allKeywords = [
-  //   '벚꽃', '봄', '피크닉', '강아지', '석촌호수', '러버덕', '+',
-  // ];
-  List<String> allKeywords = []; // 초기엔 빈 리스트
+  final allKeywords = ['벚꽃', '봄', '피크닉', '강아지', '석촌호수', '러버덕', '+'];
 
   @override
   void initState() {
     super.initState();
     selectedEmoji = widget.emotionEmoji;
-    _loadEventDetails();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final images = locationImages[widget.location] ?? [];
@@ -81,7 +67,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     super.dispose();
   }
 
-  Future<int?> sendEventToApi({
+  Future<void> sendEventToApi({
     required String title,
     required double longitude,
     required double latitude,
@@ -90,94 +76,46 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     required String memos,
     required List<String> keywords,
   }) async {
-    final url = Uri.parse('http://10.0.2.2:8000/api/events/create/');
-
-    // 이미지 처리
-    final images = imageSlots
-        .where((image) => image != null)
-        .map((image) => image!)
-        .toList();
-
+    final url = Uri.parse('http://10.0.2.2:8000/api/events/');
     final body = jsonEncode({
-      "date": widget.selectedDate.toIso8601String().split('T')[0],
-      "time": time,
       "title": title,
       "longitude": longitude,
       "latitude": latitude,
-      "images": images,
-      "emotion_id": int.parse(emotion),
-      "weather": "sunny",
-      "memos": [
-        {
-          "content": memos
-        }
-      ],
-      "keywords": keywords.map((keyword) => {
-        "content": keyword,
-        "source_type": "user_input"
-      }).toList(),
+      "start_time": time,
+      "emotion": emotion,
+      "memos": memos,
+      "keywords": keywords,
     });
 
     final response = await http.post(
       url,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYyMTI4NzYwLCJpYXQiOjE3NDY3Njg3NjAsImp0aSI6ImNkM2E1ZGU5ZDU1NzRjODg5NDNiYTM3NzIzNTJhM2FlIiwidXNlcl9pZCI6MX0.2qA5bPwgRzmJLtW2NwNNXqXCsl1gdkS_9Yqvq4Qg9ic',  // 토큰 추가
-      },
+      headers: {"Content-Type": "application/json"},
       body: body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       debugPrint('✅ 이벤트 저장 성공!');
-      final responseData = jsonDecode(response.body);
-      return responseData['event_id']; // <- 서버 응답에 event_id 포함되어 있어야 함
     } else {
       debugPrint('❌ 이벤트 저장 실패: ${response.statusCode} ${response.body}');
-      return null;
+      throw Exception('이벤트 저장 실패');
     }
   }
 
   void onSave() async {
     final int emotionId = convertEmojiToId(selectedEmoji);
-    final String rawTime = widget.timelineItem.split(' - ').first.trim(); // 예: "12:00"
 
-    // 현재 날짜와 시간을 기반으로 fullRawTime을 생성
-    final now = DateTime.now();
-    final String fullRawTime =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}T$rawTime';
-
-    String formattedTime;
-    try {
-      // 'yyyy-MM-ddTHH:mm' 포맷을 사용해 rawTime을 파싱
-      final DateFormat format = DateFormat('yyyy-MM-ddTHH:mm');
-      final DateTime parsedTime = format.parse(fullRawTime);
-
-      // ISO 8601 형식 반환 + 타임존 보정
-      final String timezoneOffset = '+09:00'; // 한국 기준
-      formattedTime = parsedTime.toIso8601String().replaceFirst('Z', timezoneOffset);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('시간 파싱 실패: $e')),
-      );
-      return;
-    }
-
-    // ✅ 저장용 데이터 구성
     final savedData = {
       'title': timelineDescription,
       'longitude': widget.selectedLatLng.longitude,
       'latitude': widget.selectedLatLng.latitude,
-      'time': formattedTime, // ✅ 수정: 파싱된 formattedTime 사용
-      'emotion': emotionId,
-      'memos': memoController.text.trim().isNotEmpty ? memoController.text.trim() : '기록 없음',
+      'time': timelineTime,
+      'emotion': emotionId, // 숫자 ID로 변환해서 저장/전송!
+      'memos': memoController.text.trim(),
       'keywords': selectedKeywords.toList(),
-      // 'images': [], // 이미지 업로드는 별도 처리 필요
     };
 
     try {
-      await _saveEventDetailsLocally(); // ✅ 먼저 로컬에 저장
-
-      final int? event_Id = await sendEventToApi(
+      await sendEventToApi(
         title: savedData['title'] as String,
         longitude: savedData['longitude'] as double,
         latitude: savedData['latitude'] as double,
@@ -186,45 +124,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         memos: savedData['memos'] as String,
         keywords: List<String>.from(savedData['keywords'] as List),
       );
-
-      if (event_Id != null) {
-        Navigator.pop(context, event_Id); // <- 타임라인으로 event_id 전달
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이벤트 저장은 성공했지만 ID를 받아오지 못했습니다.')),
-        );
-      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('데이터가 저장되었습니다!')));
+      Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('저장 실패: $e')),
-      );
-    }
-  }
-
-// ✅ 로컬 저장 함수
-  Future<void> _saveEventDetailsLocally() async {
-    final prefs = await SharedPreferences.getInstance();
-    final eventData = jsonEncode({
-      'memo': memoController.text.trim(),
-      'imageSlots': imageSlots,
-      'selectedKeywords': selectedKeywords.toList(),
-      'selectedEmoji': selectedEmoji,
-    });
-    await prefs.setString('event_${widget.index}', eventData);
-  }
-
-// ✅ 로컬 불러오기 함수 (호출은 따로 필요 시 사용)
-  Future<void> _loadEventDetails() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('event_${widget.index}');
-    if (data != null) {
-      final decoded = jsonDecode(data);
-      setState(() {
-        memoController.text = decoded['memo'] ?? '';
-        imageSlots = List<String?>.from(decoded['imageSlots'] ?? [null, null]);
-        selectedKeywords = Set<String>.from(decoded['selectedKeywords'] ?? []);
-        selectedEmoji = decoded['selectedEmoji'] ?? '';
-      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('저장 실패: $e')));
     }
   }
 
@@ -241,9 +148,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             onChanged: (value) {
               newKeyword = value.trim();
             },
-            decoration: const InputDecoration(
-              hintText: '예: 카페, 운동, 공부 등',
-            ),
+            decoration: const InputDecoration(hintText: '예: 카페, 운동, 공부 등'),
           ),
           actions: [
             TextButton(
@@ -284,7 +189,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   void onBigBoxPlusTapped() async {
-    print("✅ 이미지 키워드 추출 시작됨!");
     debugPrint("📦 큰 사각형 + 버튼 클릭됨");
 
     final result = await showModalBottomSheet<List<String>>(
@@ -299,33 +203,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       },
     );
 
-    // 이미지가 선택된 경우에만 상태 저장
-    if (result != null && result.isNotEmpty) {
+    // 이미지 두 장 선택된 경우에만 상태 저장
+    if (result != null && result.length == 2) {
       setState(() {
-        // 이미지 선택 후 상태 저장
-        if (result.length == 2) {
-          imageSlots[0] = result[0];  // 첫 번째 이미지
-          imageSlots[1] = result[1];  // 두 번째 이미지
-        } else {
-          imageSlots[0] = result[0];  // 하나만 선택된 경우
-        }
+        imageSlots[0] = result[0]; // 첫 번째 이미지
+        imageSlots[1] = result[1]; // 두 번째 이미지
       });
-
-      // 첫 번째 이미지에서 키워드 추출
-      final imageFile = File(result[0]);  // 이미지 파일을 File로 변환
-      final extractor = ImageKeywordExtractor();  // ImageKeywordExtractor 인스턴스 생성
-      final keywordResult = await extractor.extract(imageFile);  // 키워드 추출
-      print('추출된 키워드: ${keywordResult?.keywordsKo}');
-
-      // 추출된 키워드가 있을 경우
-      if (keywordResult != null) {
-        setState(() {
-          selectedKeywords.addAll(keywordResult.keywordsKo);
-
-          // 여기서 allKeywords도 업데이트
-          allKeywords = [...keywordResult.keywordsKo, '+'];// 한국어 키워드 추가
-        });
-      }
     }
   }
 
@@ -333,8 +216,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Widget build(BuildContext context) {
     final squareSize = MediaQuery.of(context).size.width * 0.4;
 
-    final formattedDate = DateFormat('yyyy.MM.dd EEEE').format(widget.selectedDate);
+    final formattedDate = DateFormat(
+      'yyyy.MM.dd EEEE',
+    ).format(widget.selectedDate);
     final formattedTime = DateFormat('HH:mm').format(widget.selectedDate);
+    // final images = locationImages[widget.location] ?? [];
     final images = locationImages[widget.location] ?? [];
 
     // 디버깅 로그 출력
@@ -378,16 +264,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade300),
-            image: imageSlots[index] != null
-                ? DecorationImage(
-              image: AssetImage(imageSlots[index]!),
-              fit: BoxFit.cover,
-            )
-                : null,
+            image:
+                imageSlots[index] != null
+                    ? DecorationImage(
+                      image: AssetImage(imageSlots[index]!),
+                      fit: BoxFit.cover,
+                    )
+                    : null,
           ),
-          child: imageSlots[index] == null
-              ? const Center(child: Icon(Icons.add, size: 32))
-              : null,
+          child:
+              imageSlots[index] == null
+                  ? const Center(child: Icon(Icons.add, size: 32))
+                  : null,
         ),
       );
     }
@@ -405,16 +293,17 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 bottom: MediaQuery.of(context).viewInsets.bottom + 16,
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         formattedDate,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -440,7 +329,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(timelineTime, style: const TextStyle(fontSize: 16)),
+                              Text(
+                                timelineTime,
+                                style: const TextStyle(fontSize: 16),
+                              ),
                               const SizedBox(width: 12),
                               Icon(Icons.wb_sunny, color: Colors.orange),
                             ],
@@ -449,7 +341,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           Center(
                             child: Text(
                               timelineDescription,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
@@ -459,7 +354,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         spacing: 16,
                         runSpacing: 16,
                         alignment: WrapAlignment.center,
-                        children: List.generate(2, (index) => buildInteractiveBox(index)),
+                        children: List.generate(
+                          2,
+                          (index) => buildInteractiveBox(index),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       TextField(
@@ -472,28 +370,42 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         decoration: InputDecoration(
                           labelText: '일정에 대한 메모를 입력하세요',
                           hintText: '예: 오늘 러버덕이 귀여웠다!',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
                         ),
                       ),
                       Wrap(
                         spacing: 12,
                         runSpacing: 8,
-                        children: allKeywords.map((keyword) {
-                          final isPlus = keyword == '+';
-                          final isSelected = selectedKeywords.contains(keyword);
+                        children:
+                            allKeywords.map((keyword) {
+                              final isPlus = keyword == '+';
+                              final isSelected = selectedKeywords.contains(
+                                keyword,
+                              );
 
-                          return ChoiceChip(
-                            label: Text(keyword),
-                            selected: isSelected,
-                            selectedColor: isPlus ? Colors.grey.shade300 : Colors.blue.shade300,
-                            backgroundColor: Colors.grey.shade300,
-                            labelStyle: TextStyle(
-                              color: isSelected || isPlus ? Colors.black : Colors.black,
-                            ),
-                            onSelected: (_) => toggleKeyword(keyword),
-                          );
-                        }).toList(),
+                              return ChoiceChip(
+                                label: Text(keyword),
+                                selected: isSelected,
+                                selectedColor:
+                                    isPlus
+                                        ? Colors.grey.shade300
+                                        : Colors.blue.shade300,
+                                backgroundColor: Colors.grey.shade300,
+                                labelStyle: TextStyle(
+                                  color:
+                                      isSelected || isPlus
+                                          ? Colors.black
+                                          : Colors.black,
+                                ),
+                                onSelected: (_) => toggleKeyword(keyword),
+                              );
+                            }).toList(),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -501,10 +413,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           const Text("나의 마음", style: TextStyle(fontSize: 16)),
                           const SizedBox(width: 8),
                           if (selectedEmoji.isNotEmpty)
-                            Text(selectedEmoji ?? '😀', style: const TextStyle(fontSize: 20)),
+                            Text(
+                              selectedEmoji ?? '😀',
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           IconButton(
                             onPressed: () async {
-                              final result = await showEventEmotionDialog(context);
+                              final result = await showEventEmotionDialog(
+                                context,
+                              );
                               if (result != null && result is String) {
                                 setState(() {
                                   selectedEmoji = result;
@@ -526,4 +443,3 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     );
   }
 }
-
