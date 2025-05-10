@@ -4,10 +4,19 @@ import 'package:provider/provider.dart'; // 추가!
 import 'data/diary_provider.dart'; // 추가! (너가 만든 DiaryProvider 파일 경로에 맞춰야 해)
 import 'pages/starting/landing.dart'; // 추가! (LandingPage 위치에 맞춰야 해)
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final envFile = File('.env');
+  if (await envFile.exists()) {
+    print(".env file found!");
+  } else {
+    print(".env file not found!");
+  }
+  await dotenv.load(); // .env 파일 로드
 
   runApp(
     MultiProvider(
