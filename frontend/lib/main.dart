@@ -5,7 +5,6 @@ import 'data/diary_provider.dart'; // 추가! (너가 만든 DiaryProvider 파�
 import 'pages/starting/landing.dart'; // 추가! (LandingPage 위치에 맞춰야 해)
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -31,10 +30,7 @@ class SheepDiaryApp extends StatelessWidget {
         useMaterial3: true,
       ),
       locale: const Locale('ko', 'KR'),
-      supportedLocales: const [
-        Locale('en', 'US'),
-        Locale('ko', 'KR'),
-      ],
+      supportedLocales: const [Locale('en', 'US'), Locale('ko', 'KR')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

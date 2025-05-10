@@ -40,9 +40,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return parts.length > 1 ? parts[1] : '';
   }
 
-  final allKeywords = [
-    '벚꽃', '봄', '피크닉', '강아지', '석촌호수', '러버덕', '+',
-  ];
+  final allKeywords = ['벚꽃', '봄', '피크닉', '강아지', '석촌호수', '러버덕', '+'];
 
   @override
   void initState() {
@@ -126,14 +124,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         memos: savedData['memos'] as String,
         keywords: List<String>.from(savedData['keywords'] as List),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('데이터가 저장되었습니다!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('데이터가 저장되었습니다!')));
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('저장 실패: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('저장 실패: $e')));
     }
   }
 
@@ -150,9 +148,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             onChanged: (value) {
               newKeyword = value.trim();
             },
-            decoration: const InputDecoration(
-              hintText: '예: 카페, 운동, 공부 등',
-            ),
+            decoration: const InputDecoration(hintText: '예: 카페, 운동, 공부 등'),
           ),
           actions: [
             TextButton(
@@ -210,8 +206,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     // 이미지 두 장 선택된 경우에만 상태 저장
     if (result != null && result.length == 2) {
       setState(() {
-        imageSlots[0] = result[0];  // 첫 번째 이미지
-        imageSlots[1] = result[1];  // 두 번째 이미지
+        imageSlots[0] = result[0]; // 첫 번째 이미지
+        imageSlots[1] = result[1]; // 두 번째 이미지
       });
     }
   }
@@ -220,7 +216,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Widget build(BuildContext context) {
     final squareSize = MediaQuery.of(context).size.width * 0.4;
 
-    final formattedDate = DateFormat('yyyy.MM.dd EEEE').format(widget.selectedDate);
+    final formattedDate = DateFormat(
+      'yyyy.MM.dd EEEE',
+    ).format(widget.selectedDate);
     final formattedTime = DateFormat('HH:mm').format(widget.selectedDate);
     // final images = locationImages[widget.location] ?? [];
     final images = locationImages[widget.location] ?? [];
@@ -266,16 +264,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade300),
-            image: imageSlots[index] != null
-                ? DecorationImage(
-              image: AssetImage(imageSlots[index]!),
-              fit: BoxFit.cover,
-            )
-                : null,
+            image:
+                imageSlots[index] != null
+                    ? DecorationImage(
+                      image: AssetImage(imageSlots[index]!),
+                      fit: BoxFit.cover,
+                    )
+                    : null,
           ),
-          child: imageSlots[index] == null
-              ? const Center(child: Icon(Icons.add, size: 32))
-              : null,
+          child:
+              imageSlots[index] == null
+                  ? const Center(child: Icon(Icons.add, size: 32))
+                  : null,
         ),
       );
     }
@@ -293,16 +293,17 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 bottom: MediaQuery.of(context).viewInsets.bottom + 16,
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         formattedDate,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -328,7 +329,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(timelineTime, style: const TextStyle(fontSize: 16)),
+                              Text(
+                                timelineTime,
+                                style: const TextStyle(fontSize: 16),
+                              ),
                               const SizedBox(width: 12),
                               Icon(Icons.wb_sunny, color: Colors.orange),
                             ],
@@ -337,7 +341,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           Center(
                             child: Text(
                               timelineDescription,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
@@ -347,7 +354,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         spacing: 16,
                         runSpacing: 16,
                         alignment: WrapAlignment.center,
-                        children: List.generate(2, (index) => buildInteractiveBox(index)),
+                        children: List.generate(
+                          2,
+                          (index) => buildInteractiveBox(index),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       TextField(
@@ -360,28 +370,42 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         decoration: InputDecoration(
                           labelText: '일정에 대한 메모를 입력하세요',
                           hintText: '예: 오늘 러버덕이 귀여웠다!',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
                         ),
                       ),
                       Wrap(
                         spacing: 12,
                         runSpacing: 8,
-                        children: allKeywords.map((keyword) {
-                          final isPlus = keyword == '+';
-                          final isSelected = selectedKeywords.contains(keyword);
+                        children:
+                            allKeywords.map((keyword) {
+                              final isPlus = keyword == '+';
+                              final isSelected = selectedKeywords.contains(
+                                keyword,
+                              );
 
-                          return ChoiceChip(
-                            label: Text(keyword),
-                            selected: isSelected,
-                            selectedColor: isPlus ? Colors.grey.shade300 : Colors.blue.shade300,
-                            backgroundColor: Colors.grey.shade300,
-                            labelStyle: TextStyle(
-                              color: isSelected || isPlus ? Colors.black : Colors.black,
-                            ),
-                            onSelected: (_) => toggleKeyword(keyword),
-                          );
-                        }).toList(),
+                              return ChoiceChip(
+                                label: Text(keyword),
+                                selected: isSelected,
+                                selectedColor:
+                                    isPlus
+                                        ? Colors.grey.shade300
+                                        : Colors.blue.shade300,
+                                backgroundColor: Colors.grey.shade300,
+                                labelStyle: TextStyle(
+                                  color:
+                                      isSelected || isPlus
+                                          ? Colors.black
+                                          : Colors.black,
+                                ),
+                                onSelected: (_) => toggleKeyword(keyword),
+                              );
+                            }).toList(),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -389,10 +413,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           const Text("나의 마음", style: TextStyle(fontSize: 16)),
                           const SizedBox(width: 8),
                           if (selectedEmoji.isNotEmpty)
-                            Text(selectedEmoji ?? '😀', style: const TextStyle(fontSize: 20)),
+                            Text(
+                              selectedEmoji ?? '😀',
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           IconButton(
                             onPressed: () async {
-                              final result = await showEventEmotionDialog(context);
+                              final result = await showEventEmotionDialog(
+                                context,
+                              );
                               if (result != null && result is String) {
                                 setState(() {
                                   selectedEmoji = result;

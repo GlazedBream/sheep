@@ -28,7 +28,7 @@ class Event(models.Model):
     timeline_id = models.ForeignKey(
         Timeline, on_delete=models.CASCADE, null=True, blank=True
     )
-    pictures = models.ManyToManyField(Picture, related_name='events')
+    pictures = models.ManyToManyField(Picture, related_name="events")
     if os.getenv("USE_GEOLOCATION_BYPASS", "False").lower() == "true":
         longitude = models.FloatField(null=True, blank=True)
         latitude = models.FloatField(null=True, blank=True)

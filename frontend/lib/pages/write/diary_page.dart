@@ -142,7 +142,7 @@ class _DiaryPageState extends State<DiaryPage> {
 
     final headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYxNjE2MjA2LCJpYXQiOjE3NDYyNTYyMDYsImp0aSI6ImNlZWZkNjY1MmU5ODRkZWRiN2NkYmVmMTMxN2JlYjM4IiwidXNlcl9pZCI6MX0.Fo7E7VxVar7Fw6MoBZ3DupjG5f8ySToL4Tej8gZQ2jk', // 필요한 경우
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYyMTI4NzYwLCJpYXQiOjE3NDY3Njg3NjAsImp0aSI6ImNkM2E1ZGU5ZDU1NzRjODg5NDNiYTM3NzIzNTJhM2FlIiwidXNlcl9pZCI6MX0.2qA5bPwgRzmJLtW2NwNNXqXCsl1gdkS_9Yqvq4Qg9ic', // 필요한 경우
     };
 
     try {
