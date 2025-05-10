@@ -4,18 +4,33 @@ import '../../data/diary.dart';
 import '../../data/diary_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '/pages/write/emoji.dart';
 
 class DiaryEntry {
-  final String date;
+  final String date; // DateTime으로만 사용
   final String text;
   final List<String> tags;
   final List<String> photos;
+  final double latitude; // 위도
+  final double longitude; // 경도
+  final List<LatLng> timeline; // 타임라인 좌표들
+  final Set<Marker> markers; // 지도 마커들
+  final LatLng cameraTarget; // 지도 중심 좌표
+  final String emotionEmoji; // 🥳 선택된 이모지
 
   DiaryEntry({
-    required this.date,
+    required this.date, // DateTime으로 변경
     required this.text,
     required this.tags,
     required this.photos,
+    required this.latitude,
+    required this.longitude,
+    required this.timeline,
+    required this.markers,
+    required this.cameraTarget,
+    required this.emotionEmoji,
   });
 }
 
@@ -23,21 +38,44 @@ extension DiaryEntryExtension on DiaryEntry {
   Diary toDiary() {
     return Diary(
       id: UniqueKey().toString(),
-      date: date,
+      date: date, // date를 diary_date로 변환
       text: text,
       tags: tags,
       photos: photos,
+      longitude: longitude,
+      latitude: latitude,
+      timeline: timeline
+          .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
+          .toList(),
+      markers: markers.map((marker) => {
+        'id': marker.markerId.value,
+        'lat': marker.position.latitude,
+        'lng': marker.position.longitude,
+      }).toList(),
+      cameraTarget: {
+        'lat': cameraTarget.latitude,
+        'lng': cameraTarget.longitude,
+      },
+      emotionEmoji: emotionEmoji,
     );
   }
 }
 
+
 class DiaryPage extends StatefulWidget {
   final DiaryEntry entry;
+  final String emotionEmoji;
+  final String date;  // diary_date로 전달
 
-  const DiaryPage({super.key, required this.entry});
+  const DiaryPage({
+    super.key,
+    required this.entry,  // DiaryEntry 객체 전달
+    required this.emotionEmoji,
+    required this.date  // diary_date 전달
+  });
 
   @override
-  State<DiaryPage> createState() => _DiaryPageState();
+  _DiaryPageState createState() => _DiaryPageState();
 }
 
 class _DiaryPageState extends State<DiaryPage> {
@@ -52,16 +90,73 @@ class _DiaryPageState extends State<DiaryPage> {
   }
 
   void _saveDiary() {
-    final updatedDiary = Diary(
-      id: UniqueKey().toString(),
+    final updatedEntry = DiaryEntry(
       date: widget.entry.date,
       text: _textController.text,
       tags: widget.entry.tags,
       photos: widget.entry.photos,
+      latitude: widget.entry.latitude,
+      longitude: widget.entry.longitude,
+      timeline: widget.entry.timeline,
+      cameraTarget: widget.entry.cameraTarget,
+      markers: widget.entry.markers,
+      emotionEmoji: widget.entry.emotionEmoji, // 이모지 저장
     );
 
+    final updatedDiary = updatedEntry.toDiary();
+
+    // Provider 저장
     Provider.of<DiaryProvider>(context, listen: false).addDiary(updatedDiary);
+
+    // ✅ API 서버로 전송
+    _sendDiaryToServer(updatedEntry, _textController.text);
+
+    // 페이지 종료
     Navigator.pop(context);
+  }
+
+  Future<void> _sendDiaryToServer(DiaryEntry entry, String finalText) async {
+    final url = Uri.parse('http://10.0.2.2:8000/api/diaries/'); // 실제 API 주소로 변경
+    final body = jsonEncode({
+      'diary_date': widget.entry.date,
+      'final_text': _textController.text,
+      'keywords': widget.entry.tags,
+      'emotion': convertEmojiToId(widget.entry.emotionEmoji),
+      'timeline_sent': widget.entry.timeline
+          .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
+          .toList(),
+      'markers': widget.entry.markers
+          .map((marker) => {
+        'id': marker.markerId.value,
+        'lat': marker.position.latitude,
+        'lng': marker.position.longitude,
+        // 'title': marker.infoWindow.title ?? '',
+        // 'snippet': marker.infoWindow.snippet ?? ''
+      })
+          .toList(),
+      'cameraTarget': {
+        'lat': widget.entry.cameraTarget.latitude,
+        'lng': widget.entry.cameraTarget.longitude,
+      },
+    });
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYyMTI4NzYwLCJpYXQiOjE3NDY3Njg3NjAsImp0aSI6ImNkM2E1ZGU5ZDU1NzRjODg5NDNiYTM3NzIzNTJhM2FlIiwidXNlcl9pZCI6MX0.2qA5bPwgRzmJLtW2NwNNXqXCsl1gdkS_9Yqvq4Qg9ic', // 필요한 경우
+    };
+
+    try {
+      final response = await http.post(url, body: body, headers: headers);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Diary successfully saved to server!");
+      } else {
+        print("❌ Server error: ${response.statusCode}");
+        print("Response body: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Failed to connect to server: $e");
+    }
   }
 
   @override
@@ -83,12 +178,27 @@ class _DiaryPageState extends State<DiaryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 날짜
-            Text(
-              "🗓 ${widget.entry.date}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Text(
+                  "🗓 ${widget.entry.date}",
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 130),
+                if (widget.entry.emotionEmoji.isNotEmpty) ...[
+                  const Text(
+                    "오늘의 기분 ",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    widget.entry.emotionEmoji,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 12),
+
 
             // 지도/사진 전환 ChoiceChip
             Row(
@@ -153,28 +263,39 @@ class _DiaryPageState extends State<DiaryPage> {
     );
   }
 
+
   Widget _buildMapTimeline() {
     return Container(
-      height: 200,
+      height: 300,
       decoration: BoxDecoration(
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.hardEdge,
       child: GoogleMap(
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(37.5665, 126.9780), // 서울시청
-          zoom: 13,
+        initialCameraPosition: CameraPosition(
+          target: widget.entry.cameraTarget,
+          zoom: 12,
         ),
-        myLocationEnabled: true, // 현재 위치 표시
-        myLocationButtonEnabled: true, // 위치 버튼
-        zoomControlsEnabled: false, // 확대/축소 버튼 숨김
-        onMapCreated: (GoogleMapController controller) {
-          // 컨트롤러 저장하려면 변수로 받아와야 함
+        markers: widget.entry.markers,
+        polylines: {
+          if (widget.entry.timeline.length > 1)
+            Polyline(
+              polylineId: PolylineId("timelinePath"),
+              color: Colors.blueAccent,
+              width: 4,
+              points: widget.entry.timeline,
+            ),
         },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        zoomControlsEnabled: false,
+        onMapCreated: (controller) {},
       ),
     );
   }
+
+
 
   Widget _buildPhotoSlider() {
     if (widget.entry.photos.isEmpty) {
