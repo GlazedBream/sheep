@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'emoji.dart'; // 감정 이모지 선택 다이얼로그
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import '/theme/themed_scaffold.dart';
+import '/theme/templates.dart';
 import '/pages/event/event_detail_screen.dart';
 import '/pages/review/review_page.dart';
 import '/pages/mypage/mypage.dart';
 import '/pages/calendarscreen.dart';
 import 'diary_page.dart';
+import 'emoji.dart';
+import '/data/diary.dart';
+import '../../theme/themed_scaffold.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:test_sheep/constants/location_data.dart';
@@ -232,13 +240,27 @@ class _WritePageState extends State<WritePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("📅 Today's Timeline"),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
+    return ThemedScaffold(
+      title: "📅 Today's Timeline",
+      currentIndex: 1,
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
+            break;
+          case 1:
+            break;
+          case 2:
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPageScreen()));
+            break;
+        }
+      },
+      navItems: const [
+        BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Review'),
+        BottomNavigationBarItem(icon: Icon(Icons.timeline), label: 'Timeline'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
+      ],
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,62 +429,25 @@ class _WritePageState extends State<WritePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => DiaryPage(
-                            entry: newEntry,
-                            emotionEmoji: newEntry.emotionEmoji,
-                            date: newEntry.date,
-                          ),
+                      builder: (_) => DiaryPage(
+                        entry: newEntry,
+                        emotionEmoji: newEntry.emotionEmoji,
+                        date: newEntry.date,
+                      ),
                     ),
                   );
                 },
                 icon: const Icon(Icons.book),
                 label: const Text("Go to the Diary"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.lightBlue[200],
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
+                  backgroundColor: Colors.grey[100],
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // 현재 페이지 인덱스 (예: 타임라인 페이지면 1)
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CalendarScreen()),
-              );
-              break;
-            case 1:
-              // 현재 페이지가 타임라인이므로 아무 동작도 하지 않음
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyPageScreen()),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Review',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timeline),
-            label: 'Timeline',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
-        ],
       ),
     );
   }
