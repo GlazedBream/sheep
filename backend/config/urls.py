@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/events/", include("events.urls")),
     path("api/logs/", include("logs.urls")),
     path("api/galleries/", include("galleries.urls")),
+    path('api/keywords/', include('keywords.urls')),
     # stores 미구현
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),

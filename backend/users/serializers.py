@@ -16,8 +16,8 @@ class UserProfileResponseSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     user_name = serializers.CharField()
     email = serializers.EmailField()
-    profile_image_url = serializers.URLField()
-    joined_date = serializers.DateField()
+    # profile_image_url = serializers.URLField()
+    # joined_date = serializers.DateField()
 
     @extend_schema_field(serializers.IntegerField)
     def get_diary_count(self, obj):

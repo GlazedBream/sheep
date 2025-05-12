@@ -3,8 +3,12 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# client = OpenAI(api_key=OPENAI_API_KEY)
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
 EMAIL_HOST = os.getenv("EMAIL_HOST")
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
     "logs",
     "galleries",
     "stores",
+    "keywords",
 ]
 
 MIDDLEWARE = [
@@ -107,6 +112,12 @@ AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN")
 AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL")
 AWS_S3_FILE_OVERWRITE = os.getenv("AWS_S3_FILE_OVERWRITE", False)
 AWS_QUERYSTRING_AUTH = os.getenv("AWS_QUERYSTRING_AUTH", False)
+
+# AWS S3 ( sheepada-photos ) 설정
+AWS_ACCESS_KEY_ID2 = os.getenv("AWS_ACCESS_KEY_ID2")
+AWS_SECRET_ACCESS_KEY2 = os.getenv("AWS_SECRET_ACCESS_KEY2")
+AWS_STORAGE_BUCKET_NAME2 = os.getenv("AWS_STORAGE_BUCKET_NAME2")
+AWS_S3_REGION_NAME2 = os.getenv("AWS_S3_REGION_NAME2")
 
 # S3 업로드 설정
 AWS_S3_OBJECT_PARAMETERS = {

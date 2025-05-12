@@ -8,6 +8,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 import re
 import time
 
+
 start_time = time.time()
 from dotenv import load_dotenv
 
