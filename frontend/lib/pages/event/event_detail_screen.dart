@@ -42,7 +42,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   List<String?> imageSlots = [null, null]; // 두 개의 슬롯
   final TextEditingController memoController = TextEditingController();
-  Set<String> selectedKeywords = {};
+  // Set<String> selectedKeywords = {};
+  List<String> selectedKeywords = []; // ✅ 이건 괜찮아
 
   String get timelineTime => widget.timelineItem.split(' - ').first;
 
@@ -72,8 +73,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       });
 
       // ✅ asset 이미지가 존재하면 키워드 자동 추출
-      if (images.isNotEmpty) {
-        await extractKeywordFromAssetImage(images[0]);
+      // if (images.isNotEmpty) {
+      //   await extractKeywordFromAssetImage(images[0]);
+      for (final image in images.take(2)) {
+        await extractKeywordFromAssetImage(image);
       }
     });
   }
@@ -227,7 +230,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       setState(() {
         memoController.text = decoded['memo'] ?? '';
         imageSlots = List<String?>.from(decoded['imageSlots'] ?? [null, null]);
-        selectedKeywords = Set<String>.from(decoded['selectedKeywords'] ?? []);
+        // selectedKeywords = Set<String>.from(decoded['selectedKeywords'] ?? []);
+        selectedKeywords = (decoded['selectedKeywords'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toSet()
+            .toList() ?? [];
         selectedEmoji = decoded['selectedEmoji'] ?? '';
       });
     }
@@ -288,15 +295,41 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     });
   }
 
+  // Future<void> extractKeywordFromAssetImage(String assetImagePath) async {
+  //   final extractor = ImageKeywordExtractor();
+  //   final imageFile = await ImageKeywordExtractor.assetToFile(assetImagePath);
+  //   final keywordResult = await extractor.extract(imageFile);
+  //
+  //   if (!mounted) return; // 🔒 위젯이 아직 살아 있는지 확인
+  //
+  //   if (keywordResult != null) {
+  //     setState(() {
+  //       allKeywords = [...keywordResult.keywordsKo, '+'];
+  //       selectedKeywords.addAll(keywordResult.keywordsKo);
+  //     });
+  //   }
+  // }
+
   Future<void> extractKeywordFromAssetImage(String assetImagePath) async {
     final extractor = ImageKeywordExtractor();
     final imageFile = await ImageKeywordExtractor.assetToFile(assetImagePath);
     final keywordResult = await extractor.extract(imageFile);
 
+    if (!mounted) return;
+
     if (keywordResult != null) {
       setState(() {
-        allKeywords = [...keywordResult.keywordsKo, '+'];
-        selectedKeywords.addAll(keywordResult.keywordsKo);
+        // ✅ 중복 없는 키워드 누적
+        allKeywords = {
+          ...allKeywords,
+          ...keywordResult.keywordsKo,
+        }.toList();
+
+        selectedKeywords = (selectedKeywords.toSet()..addAll(keywordResult.keywordsKo)).toList();
+
+        // ✅ "+" 기호가 항상 마지막에 오도록 정렬
+        allKeywords.remove('+');
+        allKeywords.add('+');
       });
     }
   }
