@@ -7,6 +7,7 @@ import '../../data/diary.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '/helpers/auth_helper.dart';
 
 class ReviewPage extends StatefulWidget {
   final DiaryEntry entry;
@@ -36,11 +37,7 @@ class _ReviewPageState extends State<ReviewPage> {
     final formattedDate = widget.date;
     // print(formattedDate);// 이미 전달된 date 사용
     final url = Uri.parse('http://10.0.2.2:8000/api/diaries/$formattedDate/');  // API 엔드포인트 URL
-
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYxNjE2MjA2LCJpYXQiOjE3NDYyNTYyMDYsImp0aSI6ImNlZWZkNjY1MmU5ODRkZWRiN2NkYmVmMTMxN2JlYjM4IiwidXNlcl9pZCI6MX0.Fo7E7VxVar7Fw6MoBZ3DupjG5f8ySToL4Tej8gZQ2jk', // 필요한 경우
-    };
+    final headers = await getAuthHeaders();
 
     try {
       final response = await http.get(url, headers: headers);

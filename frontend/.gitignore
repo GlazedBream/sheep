@@ -45,3 +45,9 @@ app.*.map.json
 /android/app/release
 
 .env
+
+# Flutter platform-specific artifacts
+**/linux/flutter/
+**/macos/Flutter/
+**/windows/flutter/
+**/ios/flutter/

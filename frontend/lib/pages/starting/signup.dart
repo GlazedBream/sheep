@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'login.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -72,7 +73,12 @@ class _SignUpPageState extends State<SignUpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('회원가입 성공')),
       );
-      // Navigator.push... // 로그인 화면으로 이동할 수도 있음
+      await Future.delayed(Duration(seconds: 1)); // 잠깐 대기 후 이동
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
     } else {
       final errorBody = json.decode(response.body);
       print("❌ 로그인 실패: $errorBody");

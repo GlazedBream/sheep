@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '/pages/write/emoji.dart';
+import '/helpers/auth_helper.dart';
 
 class DiaryEntry {
   final String date; // DateTime으로만 사용
@@ -115,6 +116,33 @@ class _DiaryPageState extends State<DiaryPage> {
     Navigator.pop(context);
   }
 
+  Future<bool> _onWillPop() async {
+    // 다이어리 내용이 변경되었는지 확인
+    if (_textController.text != widget.entry.text) {
+      final shouldLeave = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('저장되지 않았습니다'),
+          content: const Text('나가면 작성한 내용이 저장되지 않습니다.\n그래도 나가시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false), // stay
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true), // leave
+              child: const Text('나가기'),
+            ),
+          ],
+        ),
+      );
+
+      return shouldLeave ?? false;
+    } else {
+      return true; // 변경사항 없으면 그냥 나감
+    }
+  }
+
   Future<void> _sendDiaryToServer(DiaryEntry entry, String finalText) async {
     final url = Uri.parse('http://10.0.2.2:8000/api/diaries/'); // 실제 API 주소로 변경
     final body = jsonEncode({
@@ -140,10 +168,7 @@ class _DiaryPageState extends State<DiaryPage> {
       },
     });
 
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYyMTI4NzYwLCJpYXQiOjE3NDY3Njg3NjAsImp0aSI6ImNkM2E1ZGU5ZDU1NzRjODg5NDNiYTM3NzIzNTJhM2FlIiwidXNlcl9pZCI6MX0.2qA5bPwgRzmJLtW2NwNNXqXCsl1gdkS_9Yqvq4Qg9ic', // 필요한 경우
-    };
+    final headers = await getAuthHeaders();
 
     try {
       final response = await http.post(url, body: body, headers: headers);
@@ -161,103 +186,106 @@ class _DiaryPageState extends State<DiaryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Write Diary'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveDiary,
-          ),
-        ],
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  "🗓 ${widget.entry.date}",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 130),
-                if (widget.entry.emotionEmoji.isNotEmpty) ...[
-                  const Text(
-                    "오늘의 기분 ",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
+    return WillPopScope(
+      onWillPop: _onWillPop, // <- 여기 추가!
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Write Diary'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _saveDiary,
+            ),
+          ],
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
                   Text(
-                    widget.entry.emotionEmoji,
-                    style: const TextStyle(fontSize: 20),
+                    "🗓 ${widget.entry.date}",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 130),
+                  if (widget.entry.emotionEmoji.isNotEmpty) ...[
+                    const Text(
+                      "오늘의 기분 ",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      widget.entry.emotionEmoji,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 12),
+
+
+              // 지도/사진 전환 ChoiceChip
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ChoiceChip(
+                    label: const Text("🗺 Map"),
+                    selected: showMap,
+                    onSelected: (_) => setState(() => showMap = true),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text("📷 Photos"),
+                    selected: !showMap,
+                    onSelected: (_) => setState(() => showMap = false),
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 12),
-
-
-            // 지도/사진 전환 ChoiceChip
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ChoiceChip(
-                  label: const Text("🗺 Map"),
-                  selected: showMap,
-                  onSelected: (_) => setState(() => showMap = true),
-                ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text("📷 Photos"),
-                  selected: !showMap,
-                  onSelected: (_) => setState(() => showMap = false),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // 지도/사진 영역
-            showMap ? _buildMapTimeline() : _buildPhotoSlider(),
-            const SizedBox(height: 24),
-
-            // 다이어리 내용 입력
-            const Text("📝 다이어리 내용", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _textController,
-              maxLines: null,
-              decoration: InputDecoration(
-                hintText: '오늘의 기록을 입력하세요...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.all(12),
-                filled: true,
-                fillColor: Colors.grey[100],
               ),
-              style: const TextStyle(fontSize: 15, height: 1.5),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-            // 태그
-            if (widget.entry.tags.isNotEmpty) ...[
-              const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              // 지도/사진 영역
+              showMap ? _buildMapTimeline() : _buildPhotoSlider(),
+              const SizedBox(height: 24),
+
+              // 다이어리 내용 입력
+              const Text("📝 다이어리 내용", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: widget.entry.tags.map((tag) => Chip(label: Text(tag))).toList(),
+              TextField(
+                controller: _textController,
+                maxLines: null,
+                decoration: InputDecoration(
+                  hintText: '오늘의 기록을 입력하세요...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.all(12),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                ),
+                style: const TextStyle(fontSize: 15, height: 1.5),
               ),
-            ],
+              const SizedBox(height: 24),
 
-            // 사진 (optional, 사진 탭에서만 보여주고 싶으면 이 부분은 생략 가능)
-            // if (widget.entry.photos.isNotEmpty && !showMap) ...[
-            //   const SizedBox(height: 24),
-            //   const Text("📷 사진", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            //   const SizedBox(height: 8),
-            //   _buildPhotoSlider(),
-            // ],
-          ],
+              // 태그
+              if (widget.entry.tags.isNotEmpty) ...[
+                const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: widget.entry.tags.map((tag) => Chip(label: Text(tag))).toList(),
+                ),
+              ],
+
+              // 사진 (optional, 사진 탭에서만 보여주고 싶으면 이 부분은 생략 가능)
+              // if (widget.entry.photos.isNotEmpty && !showMap) ...[
+              //   const SizedBox(height: 24),
+              //   const Text("📷 사진", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              //   const SizedBox(height: 8),
+              //   _buildPhotoSlider(),
+              // ],
+            ],
+          ),
         ),
       ),
     );

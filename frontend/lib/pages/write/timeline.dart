@@ -12,6 +12,7 @@ import 'package:test_sheep/constants/location_data.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '/helpers/auth_helper.dart';
 
 class Event {
   final int id;
@@ -93,7 +94,8 @@ class _WritePageState extends State<WritePage> {
       _checkFirstLaunch();
 
       await convertTimelineToLatLng(); // timeline 먼저 처리
-      await _loadSavedEvents();        // 그 다음 저장 정보 로딩
+      await _loadSavedEvents(); // 그 다음 저장 정보 로딩
+      await loadEventIdMap();
 
       setState(() {});                 // 둘 다 끝난 뒤 UI 갱신
     });
@@ -202,30 +204,22 @@ class _WritePageState extends State<WritePage> {
   }
 
   LatLng getLatLngFromTimelineItem(String timelineItem) {
-    Map<String, LatLng> locationMap = {
+    final Map<String, LatLng> locationMap = {
       "집": LatLng(37.5665, 126.9780),
       "이태원": LatLng(37.5340, 126.9940),
       "홍대": LatLng(37.5563, 126.9220),
-      "한강": LatLng(37.5283, 126.9326), // 여의도 근처
+      "한강": LatLng(37.5283, 126.9326),
       "명동": LatLng(37.5609, 126.9862),
-      "종로": LatLng(37.5716, 126.9768), // Jongno 저녁 장소
+      "종로": LatLng(37.5716, 126.9768),
     };
-    String? extractPlaceName(String timelineItem) {
-      // timelineItem 예: "08:30 - 출발 from Home"
-      final regex = RegExp(r'from (\w+(?: \w+)*)'); // "from 장소명" 추출
-      final match = regex.firstMatch(timelineItem);
-      if (match != null && match.groupCount >= 1) {
-        return match.group(1);
-      }
-      return null;
-    }
 
-    final place = extractPlaceName(timelineItem);
-    if (place != null && locationMap.containsKey(place)) {
-      return locationMap[place]!;
-    }
-    // 기본 좌표 (예: 서울 시청)
-    return LatLng(37.5665, 126.9780);
+    final parts = timelineItem.split(' - ');
+    if (parts.length < 2) return locationMap["집"]!;
+
+    final desc = parts[1];
+    final place = desc.split('에서').first.trim();
+
+    return locationMap[place] ?? locationMap["집"]!;
   }
 
   Future<void> _saveEventIndex(int index) async {
@@ -266,16 +260,15 @@ class _WritePageState extends State<WritePage> {
 
     final body = {
       "date": widget.selectedDate.toIso8601String().split('T').first,
-      "event_id_series": List.generate(gpsTimeline.length, (i) => eventIdMap[i] ?? -1),
+      "event_ids_series": List.generate(gpsTimeline.length, (i) => eventIdMap[i] ?? -1),
     };
+    print('POST body: ${jsonEncode(body)}');
 
     try {
+      final headers = await getAuthHeaders();
       final response = await http.post(
         url,
-        headers: {
-          "Authorization": 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYyMTI4NzYwLCJpYXQiOjE3NDY3Njg3NjAsImp0aSI6ImNkM2E1ZGU5ZDU1NzRjODg5NDNiYTM3NzIzNTJhM2FlIiwidXNlcl9pZCI6MX0.2qA5bPwgRzmJLtW2NwNNXqXCsl1gdkS_9Yqvq4Qg9ic',  // 토큰 추가
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode(body),
       );
 
@@ -291,11 +284,32 @@ class _WritePageState extends State<WritePage> {
 
   Map<int, int> eventIdMap = {}; // {timelineIndex: eventId}
 
-  void _onEventSaved(int index, int eventId) async {
+  void _onEventSaved(int index, int event_id) async {
     await _saveEventIndex(index);
     setState(() {
-      eventIdMap[index] = eventId;
+      eventIdMap[index] = event_id;
     });
+    await saveEventIdMap();
+  }
+
+  Future<void> saveEventIdMap() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateKey = widget.selectedDate.toIso8601String().split('T').first;
+    // Map<int, int> → Map<String, int>로 변환해서 저장
+    final mapStr = eventIdMap.map((k, v) => MapEntry(k.toString(), v));
+    await prefs.setString('eventIdMap_$dateKey', jsonEncode(mapStr));
+  }
+
+  Future<void> loadEventIdMap() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateKey = widget.selectedDate.toIso8601String().split('T').first;
+    final str = prefs.getString('eventIdMap_$dateKey');
+    if (str != null) {
+      final map = jsonDecode(str) as Map<String, dynamic>;
+      setState(() {
+        eventIdMap = map.map((k, v) => MapEntry(int.parse(k), v as int));
+      });
+    }
   }
 
   @override
@@ -464,6 +478,8 @@ class _WritePageState extends State<WritePage> {
                       gpsTimeline.length,
                           (i) => eventIdMap[i] ?? -1, // 저장 안 된 일정은 -1로 표시
                     );
+                    print('eventIdMap: $eventIdMap');
+                    print('eventIdSeries: $eventIdSeries');
                     await saveTimelineToServer(eventIdSeries);
 
                     Navigator.push(

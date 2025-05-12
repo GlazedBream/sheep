@@ -9,6 +9,7 @@ import 'package:test_sheep/constants/location_data.dart';
 import '/models/image_keyword.dart';  // ImageKeywordExtractor를 여기서 import
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import '/helpers/auth_helper.dart';
 
 
 class EventDetailScreen extends StatefulWidget {
@@ -50,9 +51,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return parts.length > 1 ? parts[1] : '';
   }
 
-  // final allKeywords = [
-  //   '벚꽃', '봄', '피크닉', '강아지', '석촌호수', '러버덕', '+',
-  // ];
   List<String> allKeywords = []; // 초기엔 빈 리스트
 
   @override
@@ -61,7 +59,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     selectedEmoji = widget.emotionEmoji;
     _loadEventDetails();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final images = locationImages[widget.location] ?? [];
 
       setState(() {
@@ -72,6 +70,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           imageSlots[1] = images[1];
         }
       });
+
+      // ✅ asset 이미지가 존재하면 키워드 자동 추출
+      if (images.isNotEmpty) {
+        await extractKeywordFromAssetImage(images[0]);
+      }
     });
   }
 
@@ -118,12 +121,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       }).toList(),
     });
 
+    final headers = await getAuthHeaders();
+
     final response = await http.post(
       url,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDYyMTI4NzYwLCJpYXQiOjE3NDY3Njg3NjAsImp0aSI6ImNkM2E1ZGU5ZDU1NzRjODg5NDNiYTM3NzIzNTJhM2FlIiwidXNlcl9pZCI6MX0.2qA5bPwgRzmJLtW2NwNNXqXCsl1gdkS_9Yqvq4Qg9ic',  // 토큰 추가
-      },
+      headers: headers,
       body: body,
     );
 
@@ -139,45 +141,42 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   void onSave() async {
     final int emotionId = convertEmojiToId(selectedEmoji);
-    final String rawTime = widget.timelineItem.split(' - ').first.trim(); // 예: "12:00"
+    final String rawTime = widget.timelineItem.split(' - ').first.trim();
 
-    // 현재 날짜와 시간을 기반으로 fullRawTime을 생성
     final now = DateTime.now();
     final String fullRawTime =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}T$rawTime';
 
     String formattedTime;
     try {
-      // 'yyyy-MM-ddTHH:mm' 포맷을 사용해 rawTime을 파싱
       final DateFormat format = DateFormat('yyyy-MM-ddTHH:mm');
       final DateTime parsedTime = format.parse(fullRawTime);
 
-      // ISO 8601 형식 반환 + 타임존 보정
-      final String timezoneOffset = '+09:00'; // 한국 기준
+      final String timezoneOffset = '+09:00';
       formattedTime = parsedTime.toIso8601String().replaceFirst('Z', timezoneOffset);
     } catch (e) {
+      // ❗ 여기도 context 사용 전에 mounted 체크
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('시간 파싱 실패: $e')),
       );
       return;
     }
 
-    // ✅ 저장용 데이터 구성
     final savedData = {
       'title': timelineDescription,
       'longitude': widget.selectedLatLng.longitude,
       'latitude': widget.selectedLatLng.latitude,
-      'time': formattedTime, // ✅ 수정: 파싱된 formattedTime 사용
+      'time': formattedTime,
       'emotion': emotionId,
       'memos': memoController.text.trim().isNotEmpty ? memoController.text.trim() : '기록 없음',
       'keywords': selectedKeywords.toList(),
-      // 'images': [], // 이미지 업로드는 별도 처리 필요
     };
 
     try {
-      await _saveEventDetailsLocally(); // ✅ 먼저 로컬에 저장
+      await _saveEventDetailsLocally();
 
-      final int? event_Id = await sendEventToApi(
+      final int? event_id = await sendEventToApi(
         title: savedData['title'] as String,
         longitude: savedData['longitude'] as double,
         latitude: savedData['latitude'] as double,
@@ -187,14 +186,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         keywords: List<String>.from(savedData['keywords'] as List),
       );
 
-      if (event_Id != null) {
-        Navigator.pop(context, event_Id); // <- 타임라인으로 event_id 전달
+      // ❗ Navigator 사용 전에도 mounted 체크
+      if (!mounted) return;
+
+      if (event_id != null) {
+        print(event_id);
+        Navigator.pop(context, event_id);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('이벤트 저장은 성공했지만 ID를 받아오지 못했습니다.')),
         );
       }
     } catch (e) {
+      // ❗ 예외 처리 시 context 사용 전에도 체크
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('저장 실패: $e')),
       );
@@ -283,6 +288,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     });
   }
 
+  Future<void> extractKeywordFromAssetImage(String assetImagePath) async {
+    final extractor = ImageKeywordExtractor();
+    final imageFile = await ImageKeywordExtractor.assetToFile(assetImagePath);
+    final keywordResult = await extractor.extract(imageFile);
+
+    if (keywordResult != null) {
+      setState(() {
+        allKeywords = [...keywordResult.keywordsKo, '+'];
+        selectedKeywords.addAll(keywordResult.keywordsKo);
+      });
+    }
+  }
+
   void onBigBoxPlusTapped() async {
     print("✅ 이미지 키워드 추출 시작됨!");
     debugPrint("📦 큰 사각형 + 버튼 클릭됨");
@@ -327,6 +345,51 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         });
       }
     }
+  }
+
+  bool _hasChanges() {
+    return memoController.text.isNotEmpty || selectedEmoji.isNotEmpty || selectedKeywords.isNotEmpty;
+  }
+
+  Future<bool> _onWillPop() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedData = prefs.getString('event_${widget.index}');
+
+    final currentData = jsonEncode({
+      'memo': memoController.text.trim(),
+      'imageSlots': imageSlots,
+      'selectedKeywords': selectedKeywords.toList(),
+      'selectedEmoji': selectedEmoji,
+    });
+
+    // 변경사항이 없으면 그냥 나가기 허용
+    if (!_hasChanges()) {
+      return true;
+    }
+
+    // 저장한 적이 없거나, 저장된 값과 현재 값이 다르면 팝업
+    if (savedData == null || savedData != currentData) {
+      final shouldExit = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('변경 사항이 저장되지 않았습니다'),
+          content: const Text('저장하지 않고 나가시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('나가기'),
+            ),
+          ],
+        ),
+      );
+      return shouldExit ?? false;
+    }
+
+    return true;
   }
 
   @override
@@ -392,135 +455,141 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                 ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        formattedDate,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.arrow_back),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: onSave,
-                            child: const Text("완료"),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(timelineTime, style: const TextStyle(fontSize: 16)),
-                              const SizedBox(width: 12),
-                              Icon(Icons.wb_sunny, color: Colors.orange),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: Text(
-                              timelineDescription,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        alignment: WrapAlignment.center,
-                        children: List.generate(2, (index) => buildInteractiveBox(index)),
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        onChanged: (value) {
-                          debugPrint("💬 메모 내용: $value");
-                        },
-                        controller: memoController,
-                        maxLines: 3,
-                        keyboardType: TextInputType.text,
-                        decoration: InputDecoration(
-                          labelText: '일정에 대한 메모를 입력하세요',
-                          hintText: '예: 오늘 러버덕이 귀여웠다!',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          formattedDate,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
-                      ),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: allKeywords.map((keyword) {
-                          final isPlus = keyword == '+';
-                          final isSelected = selectedKeywords.contains(keyword);
-
-                          return ChoiceChip(
-                            label: Text(keyword),
-                            selected: isSelected,
-                            selectedColor: isPlus ? Colors.grey.shade300 : Colors.blue.shade300,
-                            backgroundColor: Colors.grey.shade300,
-                            labelStyle: TextStyle(
-                              color: isSelected || isPlus ? Colors.black : Colors.black,
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              onPressed: () async {
+                                final shouldLeave = await _onWillPop();
+                                if (shouldLeave) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              icon: const Icon(Icons.arrow_back),
                             ),
-                            onSelected: (_) => toggleKeyword(keyword),
-                          );
-                        }).toList(),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const Text("나의 마음", style: TextStyle(fontSize: 16)),
-                          const SizedBox(width: 8),
-                          if (selectedEmoji.isNotEmpty)
-                            Text(selectedEmoji ?? '😀', style: const TextStyle(fontSize: 20)),
-                          IconButton(
-                            onPressed: () async {
-                              final result = await showEventEmotionDialog(context);
-                              if (result != null && result is String) {
-                                setState(() {
-                                  selectedEmoji = result;
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.emoji_emotions),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: onSave,
+                              child: const Text("완료"),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(timelineTime, style: const TextStyle(fontSize: 16)),
+                                const SizedBox(width: 12),
+                                Icon(Icons.wb_sunny, color: Colors.orange),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Center(
+                              child: Text(
+                                timelineDescription,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          alignment: WrapAlignment.center,
+                          children: List.generate(2, (index) => buildInteractiveBox(index)),
+                        ),
+                        const SizedBox(height: 24),
+                        TextField(
+                          onChanged: (value) {
+                            debugPrint("💬 메모 내용: $value");
+                          },
+                          controller: memoController,
+                          maxLines: 3,
+                          keyboardType: TextInputType.text,
+                          decoration: InputDecoration(
+                            labelText: '일정에 대한 메모를 입력하세요',
+                            hintText: '예: 오늘 러버덕이 귀여웠다!',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: allKeywords.map((keyword) {
+                            final isPlus = keyword == '+';
+                            final isSelected = selectedKeywords.contains(keyword);
+
+                            return ChoiceChip(
+                              label: Text(keyword),
+                              selected: isSelected,
+                              selectedColor: isPlus ? Colors.grey.shade300 : Colors.blue.shade300,
+                              backgroundColor: Colors.grey.shade300,
+                              labelStyle: TextStyle(
+                                color: isSelected || isPlus ? Colors.black : Colors.black,
+                              ),
+                              onSelected: (_) => toggleKeyword(keyword),
+                            );
+                          }).toList(),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text("나의 마음", style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            if (selectedEmoji.isNotEmpty)
+                              Text(selectedEmoji ?? '😀', style: const TextStyle(fontSize: 20)),
+                            IconButton(
+                              onPressed: () async {
+                                final result = await showEventEmotionDialog(context);
+                                if (result != null && result is String) {
+                                  setState(() {
+                                    selectedEmoji = result;
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.emoji_emotions),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
 
 class ImageKeywordResult {
   final String caption;
@@ -23,6 +26,19 @@ class ImageKeywordResult {
 class ImageKeywordExtractor {
   final String openaiKey = dotenv.env['OPENAI_API_KEY']!;
 
+  static Future<File> assetToFile(String assetPath) async {
+    try {
+      final byteData = await rootBundle.load(assetPath);
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/${assetPath.split('/').last}');
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+      return file;
+    } catch (e) {
+      print("❌ Failed to load asset: $e");
+      rethrow;
+    }
+  }
+
   Future<ImageKeywordResult?> extract(File imageFile) async {
     final base64Image = base64Encode(await imageFile.readAsBytes());
     final gptResponse = await _generateKeywordsFromImage(base64Image);
@@ -42,7 +58,7 @@ class ImageKeywordExtractor {
 
   Future<Map<String, dynamic>?> _generateKeywordsFromImage(String base64Image) async {
     print("📢 _generateKeywordsFromImage 함수 진입 완료"); // 최상단 확인 로그
-    print("API 키: ${dotenv.env['API_KEY']}");
+    print("API 키: ${dotenv.env['OPENAI_API_KEY']}");
 
     final prompt = '''
 이 이미지에 대해 오늘 하루를 기록하는 **영어 다이어리 문장**을 한 줄 작성해줘.
@@ -72,7 +88,10 @@ class ImageKeywordExtractor {
               {"type": "text", "text": prompt},
               {
                 "type": "image_url",
-                "image_url": {"url": "data:image/jpeg;base64,$base64Image"}
+                "image_url": {
+                  "url": "data:image/jpeg;base64,$base64Image",
+                  "detail": "auto"
+                }
               }
             ]
           }
