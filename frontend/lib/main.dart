@@ -4,6 +4,9 @@ import 'package:provider/provider.dart'; // 추가!
 import 'data/diary_provider.dart'; // 추가! (너가 만든 DiaryProvider 파일 경로에 맞춰야 해)
 import 'pages/starting/landing.dart'; // 추가! (LandingPage 위치에 맞춰야 해)
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'theme/templates.dart';
+import 'pages/mypage/diary_decoration_page.dart';
+import '';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +14,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => TemplateProvider()),
         ChangeNotifierProvider(create: (_) => DiaryProvider()), // Provider 등록
       ],
       child: const SheepDiaryApp(), // 원래 너가 만든 SheepDiaryApp 사용

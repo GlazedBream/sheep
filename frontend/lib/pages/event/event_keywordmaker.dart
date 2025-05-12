@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../theme/templates.dart';
+import '../../theme/themed_scaffold.dart';
 
 class event_keywordmaker extends StatelessWidget {
   const event_keywordmaker({super.key});
@@ -31,8 +34,9 @@ class event_keywordmaker extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
+    return ThemedScaffold(
+      title: '',
+      child: SafeArea(
         child: Column(
           children: [
             // 1~3시: 뒤로가기, 완료

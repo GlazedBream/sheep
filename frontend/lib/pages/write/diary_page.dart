@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '/pages/write/emoji.dart';
+import '../../theme/themed_scaffold.dart';
 
 class DiaryEntry {
   final String date; // DateTime으로만 사용
@@ -161,19 +162,15 @@ class _DiaryPageState extends State<DiaryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Write Diary'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveDiary,
-          ),
-        ],
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
+    return ThemedScaffold(
+      title: 'Write Diary',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.save),
+          onPressed: _saveDiary,
+        ),
+      ],
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

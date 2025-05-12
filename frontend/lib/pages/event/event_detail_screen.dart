@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
 import '/gallery_bottom_sheet.dart';
 import '/pages/write/emoji.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:test_sheep/constants/location_data.dart';
+import '../../theme/templates.dart';
+import '../../theme/themed_scaffold.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -280,9 +283,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
+    return ThemedScaffold(
+      title: formattedDate,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        TextButton(
+          onPressed: onSave,
+          child: const Text("완료", style: TextStyle(color: Colors.white)),
+        ),
+      ],
+      child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -298,87 +311,43 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        formattedDate,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.arrow_back),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: onSave,
-                            child: const Text("완료"),
-                          ),
+                          Text(timelineTime, style: const TextStyle(fontSize: 16)), // ← 여기!!
+                          const SizedBox(width: 12),
+                          const Icon(Icons.wb_sunny, color: Colors.orange),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                timelineTime,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(Icons.wb_sunny, color: Colors.orange),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: Text(
-                              timelineDescription,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          timelineDescription,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       Wrap(
                         spacing: 16,
                         runSpacing: 16,
                         alignment: WrapAlignment.center,
-                        children: List.generate(
-                          2,
-                          (index) => buildInteractiveBox(index),
-                        ),
+                        children: List.generate(2, (index) => buildInteractiveBox(index)),
                       ),
                       const SizedBox(height: 24),
                       TextField(
-                        onChanged: (value) {
-                          debugPrint("💬 메모 내용: $value");
-                        },
+                        onChanged: (value) => debugPrint("💬 메모 내용: $value"),
                         controller: memoController,
                         maxLines: 3,
                         keyboardType: TextInputType.text,
                         decoration: InputDecoration(
                           labelText: '일정에 대한 메모를 입력하세요',
                           hintText: '예: 오늘 러버덕이 귀여웠다!',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 16,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding:
+                          const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         ),
                       ),
+                      const SizedBox(height: 24),
                       Wrap(
                         spacing: 12,
                         runSpacing: 8,

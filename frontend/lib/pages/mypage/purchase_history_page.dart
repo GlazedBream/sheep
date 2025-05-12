@@ -1,5 +1,7 @@
 // 구매이력 페이지 (동일한 사진 박스 구조)
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../theme/themed_scaffold.dart';
 
 /// 4. 구매이력 페이지
 class PurchaseHistoryPage extends StatelessWidget {
@@ -7,15 +9,10 @@ class PurchaseHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('나의 구매내역'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Padding(
+    return ThemedScaffold(
+      title: '나의 구매내역',
+      currentIndex: null, // 하단 내비게이션 없음
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
           itemCount: 3,

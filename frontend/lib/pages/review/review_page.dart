@@ -7,6 +7,8 @@ import '../../data/diary.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../theme/themed_scaffold.dart';
+import '../../theme/templates.dart';
 
 class ReviewPage extends StatefulWidget {
   final DiaryEntry entry;
@@ -86,68 +88,47 @@ class _ReviewPageState extends State<ReviewPage> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/calendar');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("📖 Diary Review"),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Edit Diary',
-              onPressed: () {
-                if (diaryEntry != null) {
-                  DiaryEntry parsedDiary = DiaryEntry(
-                    date: diaryEntry!['date'] ?? '', // 실제 String 타입으로 저장되었다고 가정
-                    text: diaryEntry!['finalText'] ?? '',
-                    tags: List<String>.from(diaryEntry!['keywords'] ?? []),
-                    photos: List<String>.from(diaryEntry!['photos'] ?? []),
-                    latitude: (diaryEntry!['latitude'] ?? 0.0).toDouble(),
-                    longitude: (diaryEntry!['longitude'] ?? 0.0).toDouble(),
-                    timeline: (diaryEntry!['timeline'] as List<dynamic>? ?? []).map((e) {
-                      return LatLng(e['lat'] ?? 0.0, e['lng'] ?? 0.0);
-                    }).toList(),
-                    markers: <Marker>{}, // 기본 비어 있는 마커 세트
-                    cameraTarget: const LatLng(0.0, 0.0), // 기본 중심 좌표 설정
-                    emotionEmoji: diaryEntry!['emotionEmoji'] ?? '',
-                  );
+    return ThemedScaffold(
+      title: "📖 Diary Review",
+      currentIndex: null,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit),
+          tooltip: 'Edit Diary',
+          onPressed: () {
+            if (diaryEntry != null) {
+              DiaryEntry parsedDiary = DiaryEntry(
+                date: diaryEntry!['date'] ?? '',
+                text: diaryEntry!['finalText'] ?? '',
+                tags: List<String>.from(diaryEntry!['keywords'] ?? []),
+                photos: List<String>.from(diaryEntry!['photos'] ?? []),
+                latitude: (diaryEntry!['latitude'] ?? 0.0).toDouble(),
+                longitude: (diaryEntry!['longitude'] ?? 0.0).toDouble(),
+                timeline: (diaryEntry!['timeline'] as List<dynamic>? ?? []).map((e) {
+                  return LatLng(e['lat'] ?? 0.0, e['lng'] ?? 0.0);
+                }).toList(),
+                markers: <Marker>{},
+                cameraTarget: const LatLng(0.0, 0.0),
+                emotionEmoji: diaryEntry!['emotionEmoji'] ?? '',
+              );
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DiaryPage(
-                        entry: parsedDiary,
-                        emotionEmoji: parsedDiary.emotionEmoji,
-                        date: widget.date,  // 여긴 String 그대로 넘겨줘도 돼
-                      ),
-                    ),
-                  );
-                }
-              },
-          ),
-        ],
-      ),
-      body: diaryEntry == null
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DiaryPage(
+                    entry: parsedDiary,
+                    emotionEmoji: parsedDiary.emotionEmoji,
+                    date: widget.date,
+                  ),
+                ),
+              );
+            }
+          },
+        ),
+      ],
+      child: diaryEntry == null
           ? const Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(16.0),
@@ -204,7 +185,6 @@ class _ReviewPageState extends State<ReviewPage> {
                     style: const TextStyle(fontSize: 15, height: 1.5),
                   ),
                 ),
-
                 const SizedBox(height: 24),
                 const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
@@ -213,16 +193,17 @@ class _ReviewPageState extends State<ReviewPage> {
                   runSpacing: 4,
                   children: (diaryEntry?['tags'] as List<dynamic>?)
                       ?.map<Widget>((tag) => Chip(label: Text(tag.toString())))
-                      .toList()
-                      ?? [const Text('No tags')],
+                      .toList() ??
+                      [const Text('No tags')],
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
     );
   }
+
 
   // 지도 표시용 위젯
   Widget _buildMapTimeline() {
