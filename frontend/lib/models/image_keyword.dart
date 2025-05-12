@@ -40,7 +40,9 @@ class ImageKeywordExtractor {
     );
   }
 
-  Future<Map<String, dynamic>?> _generateKeywordsFromImage(String base64Image) async {
+  Future<Map<String, dynamic>?> _generateKeywordsFromImage(
+    String base64Image,
+  ) async {
     print("📢 _generateKeywordsFromImage 함수 진입 완료"); // 최상단 확인 로그
     print("API 키: ${dotenv.env['API_KEY']}");
 
@@ -72,19 +74,22 @@ class ImageKeywordExtractor {
               {"type": "text", "text": prompt},
               {
                 "type": "image_url",
-                "image_url": {"url": "data:image/jpeg;base64,$base64Image"}
-              }
-            ]
-          }
+                "image_url": {"url": "data:image/jpeg;base64,$base64Image"},
+              },
+            ],
+          },
         ],
-        "max_tokens": 300
+        "max_tokens": 300,
       }),
     );
 
     if (response.statusCode == 200) {
       // 응답 확인 및 디버깅
-      final content = json.decode(utf8.decode(response.bodyBytes))["choices"][0]["message"]["content"];
-      print("API 응답 내용: $content");  // 응답 로그 추가
+      final content =
+          json.decode(
+            utf8.decode(response.bodyBytes),
+          )["choices"][0]["message"]["content"];
+      print("API 응답 내용: $content"); // 응답 로그 추가
 
       final match = RegExp(r'{.*}', dotAll: true).firstMatch(content);
       if (match != null) {
@@ -95,7 +100,6 @@ class ImageKeywordExtractor {
       print('API 요청 실패: ${response.statusCode}');
       print('응답 내용: ${response.body}');
     }
-
 
     return null;
   }
@@ -118,14 +122,17 @@ $keywords
       body: jsonEncode({
         "model": "gpt-4o",
         "messages": [
-          {"role": "user", "content": prompt}
+          {"role": "user", "content": prompt},
         ],
-        "max_tokens": 100
+        "max_tokens": 100,
       }),
     );
 
     if (response.statusCode == 200) {
-      final content = json.decode(utf8.decode(response.bodyBytes))["choices"][0]["message"]["content"];
+      final content =
+          json.decode(
+            utf8.decode(response.bodyBytes),
+          )["choices"][0]["message"]["content"];
       final match = RegExp(r'\[.*\]', dotAll: true).firstMatch(content);
       if (match != null) {
         return List<String>.from(json.decode(match.group(0)!));
