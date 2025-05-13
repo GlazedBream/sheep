@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '/helpers/auth_helper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,6 +20,23 @@ class _LoginPageState extends State<LoginPage> {
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  Future<void> saveTokens(String accessToken, String refreshToken, bool autoLogin) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', accessToken);
+    await prefs.setString('refresh_token', refreshToken);
+    await prefs.setBool('auto_login', autoLogin);
+  }
+
+  Future<Map<String, String>> getAuthHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('access_token');
+
+    return {
+      'Content-Type': 'application/json',
+      if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+    };
+  }
 
   Future<void> _login() async {
     final email = _emailController.text;
@@ -41,10 +59,7 @@ class _LoginPageState extends State<LoginPage> {
           throw Exception('토큰 값이 없습니다.');
         }
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', accessToken);
-        await prefs.setString('refresh_token', refreshToken);
-        await prefs.setBool('auto_login', _autoLogin);
+        await saveTokens(accessToken, refreshToken, _autoLogin);
 
         Navigator.pushReplacement(
           context,
