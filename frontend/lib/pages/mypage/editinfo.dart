@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../theme/templates.dart';
+import '../../theme/themed_scaffold.dart';
 
 class EditInfoPage extends StatefulWidget {
   const EditInfoPage({super.key});
@@ -28,12 +31,10 @@ class _EditInfoPageState extends State<EditInfoPage> {
         }
         return true; // 키보드가 안 떠있을 때만 pop
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('개인정보 수정'),
-          centerTitle: true,
-        ),
-        body: Padding(
+      child: ThemedScaffold(
+        title: '개인정보 수정',
+        currentIndex: null,
+        child: Padding(
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,

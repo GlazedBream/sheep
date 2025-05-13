@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import '/BaseScaffold.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+
+import '../../theme/templates.dart';
+import '../../theme/themed_scaffold.dart';
 import '/pages/calendarscreen.dart';
 import '/pages/write/timeline.dart';
 import '/pages/starting/login.dart';
@@ -17,13 +21,10 @@ class MyPageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("🐑 My Page"),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Padding(
+    return ThemedScaffold(
+      title: "🐑 My Page",
+      currentIndex: 2,
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,8 +91,7 @@ class MyPageScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 32),
-            const Text('설정',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text('설정', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             _buildButton(
               context,
               '개인정보 수정',
@@ -132,7 +132,7 @@ class MyPageScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const StorePage()),
+                  MaterialPageRoute(builder: (context) => const store.StorePage()),
                 );
               },
             ),
@@ -152,41 +152,6 @@ class MyPageScreen extends StatelessWidget {
             _buildBlueButton(context, '디버깅용 Pref CLEAR/ 회원탈퇴'),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CalendarScreen()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => WritePage()),
-              );
-              break;
-            case 2:
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Review',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timeline),
-            label: 'Timeline',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'My Page',
-          ),
-        ],
       ),
     );
   }

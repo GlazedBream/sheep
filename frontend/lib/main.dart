@@ -7,7 +7,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final envFile = File('.env');
@@ -21,6 +20,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => TemplateProvider()),
         ChangeNotifierProvider(create: (_) => DiaryProvider()), // Provider 등록
       ],
       child: const SheepDiaryApp(), // 원래 너가 만든 SheepDiaryApp 사용
@@ -40,10 +40,7 @@ class SheepDiaryApp extends StatelessWidget {
         useMaterial3: true,
       ),
       locale: const Locale('ko', 'KR'),
-      supportedLocales: const [
-        Locale('en', 'US'),
-        Locale('ko', 'KR'),
-      ],
+      supportedLocales: const [Locale('en', 'US'), Locale('ko', 'KR')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

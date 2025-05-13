@@ -23,7 +23,7 @@ class _ReviewPageState extends State<ReviewPage> {
   bool showMap = true;
   int _selectedIndex = 1; // BottomNavigation 현재 탭 인덱스
   Map<String, dynamic>? diaryEntry;
-  LatLng cameraTarget = const LatLng(37.5665, 126.9780);  // 기본값
+  LatLng cameraTarget = const LatLng(37.5665, 126.9780); // 기본값
   List<LatLng> timelinePolyline = [];
   Set<Marker> markers = {};
 
@@ -36,7 +36,9 @@ class _ReviewPageState extends State<ReviewPage> {
   Future<void> fetchDiaryData() async {
     final formattedDate = widget.date;
     // print(formattedDate);// 이미 전달된 date 사용
-    final url = Uri.parse('http://10.0.2.2:8000/api/diaries/$formattedDate/');  // API 엔드포인트 URL
+    final url = Uri.parse(
+      'http://10.0.2.2:8000/api/diaries/$formattedDate/',
+    ); // API 엔드포인트 URL
     final headers = await getAuthHeaders();
 
     try {
@@ -52,16 +54,18 @@ class _ReviewPageState extends State<ReviewPage> {
           data['camera_target']['lng'],
         );
 
-        final timeline = (data['timeline_sent'] as List).map<LatLng>((point) {
-          return LatLng(point['lat'], point['lng']);
-        }).toList();
+        final timeline =
+            (data['timeline_sent'] as List).map<LatLng>((point) {
+              return LatLng(point['lat'], point['lng']);
+            }).toList();
 
-        final markerSet = (data['markers'] as List).map<Marker>((marker) {
-          return Marker(
-            markerId: MarkerId(marker['id']),
-            position: LatLng(marker['lat'], marker['lng']),
-          );
-        }).toSet();
+        final markerSet =
+            (data['markers'] as List).map<Marker>((marker) {
+              return Marker(
+                markerId: MarkerId(marker['id']),
+                position: LatLng(marker['lat'], marker['lng']),
+              );
+            }).toSet();
 
         setState(() {
           diaryEntry = data;
@@ -72,152 +76,151 @@ class _ReviewPageState extends State<ReviewPage> {
       } else {
         print("2");
         setState(() {
-          diaryEntry = null;  // 데이터가 없으면 null로 처리
+          diaryEntry = null; // 데이터가 없으면 null로 처리
         });
       }
     } catch (e) {
       print("3");
       setState(() {
-        diaryEntry = null;  // 예외 처리
+        diaryEntry = null; // 예외 처리
       });
-    }
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/calendar');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("📖 Diary Review"),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Edit Diary',
-              onPressed: () {
-                if (diaryEntry != null) {
-                  DiaryEntry parsedDiary = DiaryEntry(
-                    date: diaryEntry!['date'] ?? '', // 실제 String 타입으로 저장되었다고 가정
-                    text: diaryEntry!['finalText'] ?? '',
-                    tags: List<String>.from(diaryEntry!['keywords'] ?? []),
-                    photos: List<String>.from(diaryEntry!['photos'] ?? []),
-                    latitude: (diaryEntry!['latitude'] ?? 0.0).toDouble(),
-                    longitude: (diaryEntry!['longitude'] ?? 0.0).toDouble(),
-                    timeline: (diaryEntry!['timeline'] as List<dynamic>? ?? []).map((e) {
+    return ThemedScaffold(
+      title: "📖 Diary Review",
+      currentIndex: null,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit),
+          tooltip: 'Edit Diary',
+          onPressed: () {
+            if (diaryEntry != null) {
+              DiaryEntry parsedDiary = DiaryEntry(
+                date: diaryEntry!['date'] ?? '',
+                text: diaryEntry!['finalText'] ?? '',
+                tags: List<String>.from(diaryEntry!['keywords'] ?? []),
+                photos: List<String>.from(diaryEntry!['photos'] ?? []),
+                latitude: (diaryEntry!['latitude'] ?? 0.0).toDouble(),
+                longitude: (diaryEntry!['longitude'] ?? 0.0).toDouble(),
+                timeline:
+                    (diaryEntry!['timeline'] as List<dynamic>? ?? []).map((e) {
                       return LatLng(e['lat'] ?? 0.0, e['lng'] ?? 0.0);
                     }).toList(),
-                    markers: <Marker>{}, // 기본 비어 있는 마커 세트
-                    cameraTarget: const LatLng(0.0, 0.0), // 기본 중심 좌표 설정
-                    emotionEmoji: diaryEntry!['emotionEmoji'] ?? '',
-                  );
+                markers: <Marker>{},
+                cameraTarget: const LatLng(0.0, 0.0),
+                emotionEmoji: diaryEntry!['emotionEmoji'] ?? '',
+              );
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DiaryPage(
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (_) => DiaryPage(
                         entry: parsedDiary,
                         emotionEmoji: parsedDiary.emotionEmoji,
-                        date: widget.date,  // 여긴 String 그대로 넘겨줘도 돼
+                        date: widget.date,
                       ),
-                    ),
-                  );
-                }
-              },
-          ),
-        ],
-      ),
-      body: diaryEntry == null
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "🗓 ${DateFormat('yyyy-MM-dd').format(DateTime.parse(widget.date))}",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  "오늘의 기분: ${diaryEntry!['emotionEmoji'] ?? 'No emotion'}",
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ChoiceChip(
-                  label: const Text("🗺 Map"),
-                  selected: true,
-                  onSelected: (_) {},
-                ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text("📷 Photos"),
-                  selected: false,
-                  onSelected: (_) {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildMapTimeline(),
-            const SizedBox(height: 24),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("📝 다이어리 내용", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    diaryEntry?['final_text'] ?? 'No content available',
-                    style: const TextStyle(fontSize: 15, height: 1.5),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-                const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: (diaryEntry?['tags'] as List<dynamic>?)
-                      ?.map<Widget>((tag) => Chip(label: Text(tag.toString())))
-                      .toList()
-                      ?? [const Text('No tags')],
-                ),
-              ],
-            )
-          ],
+              );
+            }
+          },
         ),
-      ),
+      ],
+      child:
+          diaryEntry == null
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "🗓 ${DateFormat('yyyy-MM-dd').format(DateTime.parse(widget.date))}",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "오늘의 기분: ${diaryEntry!['emotionEmoji'] ?? 'No emotion'}",
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ChoiceChip(
+                          label: const Text("🗺 Map"),
+                          selected: true,
+                          onSelected: (_) {},
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text("📷 Photos"),
+                          selected: false,
+                          onSelected: (_) {},
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildMapTimeline(),
+                    const SizedBox(height: 24),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "📝 다이어리 내용",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            diaryEntry?['final_text'] ?? 'No content available',
+                            style: const TextStyle(fontSize: 15, height: 1.5),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "🏷 태그",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children:
+                              (diaryEntry?['tags'] as List<dynamic>?)
+                                  ?.map<Widget>(
+                                    (tag) => Chip(label: Text(tag.toString())),
+                                  )
+                                  .toList() ??
+                              [const Text('No tags')],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
     );
   }
 
@@ -231,10 +234,7 @@ class _ReviewPageState extends State<ReviewPage> {
       ),
       clipBehavior: Clip.hardEdge,
       child: GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: cameraTarget,
-          zoom: 13,
-        ),
+        initialCameraPosition: CameraPosition(target: cameraTarget, zoom: 13),
         markers: markers,
         polylines: {
           Polyline(
@@ -242,7 +242,7 @@ class _ReviewPageState extends State<ReviewPage> {
             points: timelinePolyline,
             color: Colors.blue,
             width: 5,
-          )
+          ),
         },
         myLocationEnabled: true,
         myLocationButtonEnabled: true,

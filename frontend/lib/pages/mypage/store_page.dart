@@ -1,36 +1,33 @@
 import 'package:flutter/material.dart';
-import 'purchase_history_page.dart';
+import '../../theme/themed_scaffold.dart'; // ThemedScaffold 임포트
 
-/// StorePage (구름 AppBar 스타일, 가격 포함 리스트뷰)
-/// StorePage (구름 AppBar 스타일, 가격 포함 리스트뷰)
 class StorePage extends StatelessWidget {
   const StorePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.green[300],
-        title: const Text('SheepDiary 🐑'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+    return ThemedScaffold(
+      title: 'SheepDiary 🐑',
+      currentIndex: null, // 바텀바 없음
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.notifications_none),
+          onPressed: () {},
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: ListView.builder(
+      ],
+      child: ListView.builder(
         padding: const EdgeInsets.all(12),
         itemCount: 3,
         itemBuilder: (context, index) {
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 8),
             child: ListTile(
-              leading: Image.asset('assets/images/test$index.jpg', width: 60, height: 60, fit: BoxFit.cover),
+              leading: Image.asset(
+                'assets/images/test$index.jpg',
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+              ),
               title: Text('스토어 아이템 $index'),
               subtitle: const Text('₩3,000'),
               onTap: () {
@@ -42,10 +39,6 @@ class StorePage extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.edit),
-      ),
     );
   }
 }
@@ -56,28 +49,28 @@ class PurchaseHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('나의 구매내역'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+    return ThemedScaffold(
+      title: '나의 구매내역',
+      currentIndex: null,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () {},
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: ListView.builder(
+      ],
+      child: ListView.builder(
         padding: const EdgeInsets.all(12),
         itemCount: 3,
         itemBuilder: (context, index) {
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 8),
             child: ListTile(
-              leading: Image.asset('assets/images/test$index.jpg', width: 60, height: 60, fit: BoxFit.cover),
+              leading: Image.asset(
+                'assets/images/test$index.jpg',
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+              ),
               title: Text('구매한 아이템 $index'),
               subtitle: const Text('2024.04.01 · ₩3,000'),
               onTap: () {

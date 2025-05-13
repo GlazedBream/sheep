@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+
+import '../../data/diary.dart';
+import '../data/diary_provider.dart';
 import 'review/review_page.dart';
 import 'write/timeline.dart'; // ✅ WritePage import 추가
 import 'package:intl/intl.dart';
@@ -10,6 +16,11 @@ import 'package:provider/provider.dart';
 import '../data/diary_provider.dart'; // 경로는 실제 위치에 맞게 조정
 import '../../data/diary.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import '/pages/mypage/mypage.dart';
+import '/theme/themed_scaffold.dart';
+import '/theme/templates.dart';
+
 
 
 class CalendarScreen extends StatefulWidget {
@@ -124,183 +135,166 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("🐑 Sheep Diary 📝"),
-        centerTitle: true,
-        backgroundColor: Theme
-            .of(context)
-            .colorScheme
-            .inversePrimary,
-      ),
-      body: Column(
-        children: [
-          // ✅ 1. 검색창
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              keyboardType: TextInputType.text,
-              autofillHints: null,
-              // 자동완성 툴바 제거!
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: InputDecoration(
-                hintText: 'Search diary...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
+    return ThemedScaffold(
+      title: "달력",
+      currentIndex: 0,
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => WritePage(
+                  emotionEmoji: "😊",
+                  selectedDate: DateTime.now(),
                 ),
-                filled: true,
-                fillColor: Colors.grey[200],
               ),
-              onChanged: (value) {
-                print('검색어: $value');
-              },
-            ),
-          ),
-
-          // ✅ 2. 캘린더 UI
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      DateFormat('yyyy년 MM월').format(_focusedDay),
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.calendar_month),
-                      onPressed: () => _showYearMonthPicker(context),
-                    ),
-                  ],
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 1.5),
-                    borderRadius: BorderRadius.circular(12),
+            );
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyPageScreen()),
+            );
+            break;
+        }
+      },
+      navItems: const [
+        BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Review'),
+        BottomNavigationBarItem(icon: Icon(Icons.timeline), label: 'Timeline'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
+      ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                keyboardType: TextInputType.text,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  hintText: 'Search diary...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
                   ),
-                  padding: const EdgeInsets.all(12),
-                  child: TableCalendar(
-                    firstDay: DateTime.utc(2020, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: _focusedDay,
-                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                      });
-                      _onDateSelected(context, selectedDay);
-                    },
-                    headerVisible: false,
-                    // 기본 헤더 제거!
-                    availableCalendarFormats: const {
-                      CalendarFormat.month: 'Month',
-                    },
-                    calendarFormat: CalendarFormat.month,
-                    eventLoader: (day) {
-                      final dateKey = DateFormat('yyyy-MM-dd').format(day);
-                      final diaryProvider = Provider.of<DiaryProvider>(
-                          context, listen: false);
-                      final hasDiary = diaryProvider.diaries.any((d) =>
-                      d.date == dateKey);
-                      return hasDiary ? [dateKey] : [];
-                    },
-                    calendarStyle: const CalendarStyle(
-                      todayDecoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
+                onChanged: (value) {
+                  print('검색어: $value');
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat('yyyy년 MM월').format(_focusedDay),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      selectedDecoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month),
+                        onPressed: () => _showYearMonthPicker(context),
                       ),
+                    ],
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey, width: 1.5),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    calendarBuilders: CalendarBuilders(
-                      markerBuilder: (context, day, events) {
-                        if (events.isNotEmpty) {
-                          return Positioned(
-                            bottom: 1,
-                            child: Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.green,
+                    padding: const EdgeInsets.all(12),
+                    child: TableCalendar(
+                      firstDay: DateTime.utc(2020, 1, 1),
+                      lastDay: DateTime.utc(2030, 12, 31),
+                      focusedDay: _focusedDay,
+                      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                      onDaySelected: (selectedDay, focusedDay) {
+                        setState(() {
+                          _selectedDay = selectedDay;
+                          _focusedDay = focusedDay;
+                        });
+                        _onDateSelected(context, selectedDay);
+                      },
+                      headerVisible: false,
+                      availableCalendarFormats: const {
+                        CalendarFormat.month: 'Month',
+                      },
+                      calendarFormat: CalendarFormat.month,
+                      eventLoader: (day) {
+                        final dateKey = DateFormat('yyyy-MM-dd').format(day);
+                        final diaryProvider = Provider.of<DiaryProvider>(context, listen: false);
+                        final hasDiary = diaryProvider.diaries.any((d) => d.date == dateKey);
+                        return hasDiary ? [dateKey] : [];
+                      },
+                      calendarStyle: const CalendarStyle(
+                        todayDecoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        selectedDecoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        outsideTextStyle: TextStyle(color: Colors.grey),
+                        weekendTextStyle: TextStyle(color: Colors.red),
+                        defaultTextStyle: TextStyle(color: Colors.black87),
+                      ),
+                      calendarBuilders: CalendarBuilders(
+                        markerBuilder: (context, day, events) {
+                          if (events.isNotEmpty) {
+                            return Positioned(
+                              bottom: 1,
+                              child: Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.green,
+                                ),
                               ),
+                            );
+                          }
+                          return null;
+                        },
+                        selectedBuilder: (context, day, focusedDay) {
+                          return Center(
+                            child: Text("🐑", style: const TextStyle(fontSize: 24)),
+                          );
+                        },
+                        defaultBuilder: (context, day, focusedDay) {
+                          return Center(child: Text('${day.day}'));
+                        },
+                        todayBuilder: (context, day, focusedDay) {
+                          return Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.lightBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${day.day}',
+                              style: const TextStyle(color: Colors.white),
                             ),
                           );
-                        }
-                        return null;
-                      },
-                      selectedBuilder: (context, day, focusedDay) {
-                        return Center(
-                          child: Text("🐑", style: TextStyle(fontSize: 24)),
-                        );
-                      },
-                      defaultBuilder: (context, day, focusedDay) {
-                        return Center(child: Text('${day.day}'));
-                      },
-                      todayBuilder: (context, day, focusedDay) {
-                        return Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.lightBlue,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${day.day}',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        );
-                      },
+                        },
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-            // 현재 페이지
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => WritePage()),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyPageScreen()),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Review',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timeline),
-            label: 'Timeline',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'My Page',
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

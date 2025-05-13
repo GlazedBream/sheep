@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'emoji.dart'; // 감정 이모지 선택 다이얼로그
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import '/theme/themed_scaffold.dart';
+import '/theme/templates.dart';
 import '/pages/event/event_detail_screen.dart';
 import '/pages/review/review_page.dart';
 import '/pages/mypage/mypage.dart';
 import '/pages/calendarscreen.dart';
 import 'diary_page.dart';
+import 'emoji.dart';
+import '/data/diary.dart';
+import '../../theme/themed_scaffold.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:test_sheep/constants/location_data.dart';
@@ -34,7 +42,11 @@ class Event {
       id: json['id'],
       time: DateTime.parse(json['time']),
       title: json['title'],
-      keywords: (json['keywords'] as List?)?.map((e) => e['content'].toString()).toList() ?? [],
+      keywords:
+          (json['keywords'] as List?)
+              ?.map((e) => e['content'].toString())
+              .toList() ??
+          [],
       memos: (json['memos'] as List?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
@@ -52,9 +64,9 @@ class WritePage extends StatefulWidget {
     "종로": LatLng(37.5716, 126.9768), // Jongno 저녁 장소
   };
 
-
   // const WritePage({
-  WritePage({ // test button 용
+  WritePage({
+    // test button 용
     super.key,
     this.emotionEmoji = '😀', // test button 용
     DateTime? selectedDate, // test button 용
@@ -88,7 +100,8 @@ class _WritePageState extends State<WritePage> {
   @override
   void initState() {
     super.initState();
-    _emojiKey = 'selectedEmotionEmoji_${widget.selectedDate.toIso8601String().split('T').first}';
+    _emojiKey =
+        'selectedEmotionEmoji_${widget.selectedDate.toIso8601String().split('T').first}';
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkFirstLaunch();
@@ -97,7 +110,7 @@ class _WritePageState extends State<WritePage> {
       await _loadSavedEvents(); // 그 다음 저장 정보 로딩
       await loadEventIdMap();
 
-      setState(() {});                 // 둘 다 끝난 뒤 UI 갱신
+      setState(() {}); // 둘 다 끝난 뒤 UI 갱신
     });
   }
 
@@ -127,7 +140,9 @@ class _WritePageState extends State<WritePage> {
                 title: entry.split(" - ").first, // 시간 부분
                 snippet: place, // 장소명
               ),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueRed,
+              ),
             ),
           );
         }
@@ -150,7 +165,8 @@ class _WritePageState extends State<WritePage> {
 
   Future<void> _checkFirstLaunch() async {
     final prefs = await SharedPreferences.getInstance();
-    final dateKey = 'hasLaunchedEmotionDialog_${widget.selectedDate.toIso8601String().split('T').first}';
+    final dateKey =
+        'hasLaunchedEmotionDialog_${widget.selectedDate.toIso8601String().split('T').first}';
     final emojiKey = _emojiKey;
 
     String? savedEmoji = prefs.getString(emojiKey);
@@ -187,7 +203,8 @@ class _WritePageState extends State<WritePage> {
 
   Future<void> _loadSavedEvents() async {
     final prefs = await SharedPreferences.getInstance();
-    final dateKeyPrefix = widget.selectedDate.toIso8601String().split('T').first;
+    final dateKeyPrefix =
+        widget.selectedDate.toIso8601String().split('T').first;
 
     Set<int> loadedIndices = {};
     for (int i = 0; i < gpsTimeline.length; i++) {
@@ -234,7 +251,10 @@ class _WritePageState extends State<WritePage> {
     });
   }
 
-  Future<void> _selectTodayEmotion(BuildContext context, String emojiKey) async {
+  Future<void> _selectTodayEmotion(
+    BuildContext context,
+    String emojiKey,
+  ) async {
     // 1. 다이얼로그 열기
     String? selected = await showTodayEmotionDialog(context);
 
@@ -251,7 +271,6 @@ class _WritePageState extends State<WritePage> {
     }
   }
 
-
   Future<void> saveTimelineToServer(List<int> eventIdSeries) async {
     final storage = FlutterSecureStorage();
     final url = Uri.parse('http://10.0.2.2:8000/api/events/timeline/');
@@ -260,7 +279,10 @@ class _WritePageState extends State<WritePage> {
 
     final body = {
       "date": widget.selectedDate.toIso8601String().split('T').first,
-      "event_ids_series": List.generate(gpsTimeline.length, (i) => eventIdMap[i] ?? -1),
+      "event_ids_series": List.generate(
+        gpsTimeline.length,
+        (i) => eventIdMap[i] ?? -1,
+      ),
     };
     print('POST body: ${jsonEncode(body)}');
 
@@ -314,13 +336,36 @@ class _WritePageState extends State<WritePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("📅 Today's Timeline"),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
+    return ThemedScaffold(
+      title: "📅 Today's Timeline",
+      currentIndex: 1,
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CalendarScreen()),
+            );
+            break;
+          case 1:
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyPageScreen()),
+            );
+            break;
+        }
+      },
+      navItems: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today),
+          label: 'Review',
+        ),
+        BottomNavigationBarItem(icon: Icon(Icons.timeline), label: 'Timeline'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
+      ],
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,9 +416,10 @@ class _WritePageState extends State<WritePage> {
                   _mapController = controller;
                 },
                 initialCameraPosition: CameraPosition(
-                  target: _polylineCoordinates.isNotEmpty
-                      ? _polylineCoordinates.first
-                      : LatLng(37.5665, 126.9780), // 기본 중심
+                  target:
+                      _polylineCoordinates.isNotEmpty
+                          ? _polylineCoordinates.first
+                          : LatLng(37.5665, 126.9780), // 기본 중심
                   zoom: 12,
                 ),
                 polylines: {
@@ -382,20 +428,25 @@ class _WritePageState extends State<WritePage> {
                     points: _polylineCoordinates,
                     color: Colors.blue,
                     width: 5,
-                  )
+                  ),
                 },
                 markers: Set<Marker>.from(_markers), // ✅ 마커 표시
-              )
+              ),
             ),
             const SizedBox(height: 16),
-            const Text("📍 Timeline", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              "📍 Timeline",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             ListView.builder(
               itemCount: gpsTimeline.length,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) {
-                final isSaved = savedEventIndices.contains(index); // 해당 일정이 저장되었는지 확인
+                final isSaved = savedEventIndices.contains(
+                  index,
+                ); // 해당 일정이 저장되었는지 확인
                 return GestureDetector(
                   onTap: () async {
                     final selectedTimeline = gpsTimeline[index];
@@ -403,18 +454,21 @@ class _WritePageState extends State<WritePage> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EventDetailScreen(
-                          selectedDate: widget.selectedDate,
-                          emotionEmoji: emotionEmoji,
-                          timelineItem: selectedTimeline,
-                          selectedLatLng: getLatLngFromTimelineItem(gpsTimeline[index]),
-                          location: location,
-                          index: index,
-                        ),
+                        builder:
+                            (context) => EventDetailScreen(
+                              selectedDate: widget.selectedDate,
+                              emotionEmoji: emotionEmoji,
+                              timelineItem: selectedTimeline,
+                              selectedLatLng: getLatLngFromTimelineItem(
+                                gpsTimeline[index],
+                              ),
+                              location: location,
+                              index: index,
+                            ),
                       ),
                     );
                     if (result != null && result is int) {
-                      _onEventSaved(index, result);  // result는 저장된 eventId (int)
+                      _onEventSaved(index, result); // result는 저장된 eventId (int)
                     }
                   },
                   child: Container(
@@ -423,20 +477,30 @@ class _WritePageState extends State<WritePage> {
                       color: isSaved ? Colors.blue[50] : null, // 저장된 일정은 색상 변경
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSaved ? Colors.blue : Colors.grey[300]!,  // 저장된 일정은 파란색 테두리
+                        color:
+                            isSaved
+                                ? Colors.blue
+                                : Colors.grey[300]!, // 저장된 일정은 파란색 테두리
                         width: isSaved ? 2 : 1,
                       ),
                     ),
                     child: ListTile(
                       leading: Icon(
                         Icons.place,
-                        color: isSaved ? Colors.blue : Colors.grey, // 저장된 일정 아이콘 색상 변경
+                        color:
+                            isSaved
+                                ? Colors.blue
+                                : Colors.grey, // 저장된 일정 아이콘 색상 변경
                       ),
                       title: Text(
                         gpsTimeline[index],
                         style: TextStyle(
-                          color: isSaved ? Colors.blue[800] : Colors.black87, // 저장된 일정 텍스트 색상 변경
-                          fontWeight: isSaved ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isSaved
+                                  ? Colors.blue[800]
+                                  : Colors.black87, // 저장된 일정 텍스트 색상 변경
+                          fontWeight:
+                              isSaved ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -448,56 +512,66 @@ class _WritePageState extends State<WritePage> {
             const SizedBox(height: 16),
             Center(
               child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final coords = await convertTimelineToLatLng();
-                    final markers = {
-                      Marker(markerId: MarkerId('start'), position: LatLng(37.5665, 126.9780)),
-                      Marker(markerId: MarkerId('end'), position: LatLng(37.5700, 126.9820)),
-                    };
+                onPressed: () async {
+                  final coords = await convertTimelineToLatLng();
+                  final markers = {
+                    Marker(
+                      markerId: MarkerId('start'),
+                      position: LatLng(37.5665, 126.9780),
+                    ),
+                    Marker(
+                      markerId: MarkerId('end'),
+                      position: LatLng(37.5700, 126.9820),
+                    ),
+                  };
 
-                    final timelinePath = [
-                      LatLng(37.5665, 126.9780),
-                      LatLng(37.5670, 126.9795),
-                      LatLng(37.5700, 126.9820),
-                    ];
+                  final timelinePath = [
+                    LatLng(37.5665, 126.9780),
+                    LatLng(37.5670, 126.9795),
+                    LatLng(37.5700, 126.9820),
+                  ];
 
-                    final newEntry = DiaryEntry(
-                      date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                      text: "자동 생성된 다이어리 요약 내용입니다.",
-                      tags: ["자동요약", "타임라인"],
-                      photos: [],
-                      latitude: 37.5665,
-                      longitude: 126.9780,
-                      timeline: coords,
-                      markers: markers,
-                      cameraTarget: LatLng(37.5675, 126.9800),
-                      emotionEmoji: emotionEmoji,
-                    );
+                  final newEntry = DiaryEntry(
+                    date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                    text: "자동 생성된 다이어리 요약 내용입니다.",
+                    tags: ["자동요약", "타임라인"],
+                    photos: [],
+                    latitude: 37.5665,
+                    longitude: 126.9780,
+                    timeline: coords,
+                    markers: markers,
+                    cameraTarget: LatLng(37.5675, 126.9800),
+                    emotionEmoji: emotionEmoji,
+                  );
 
-                    List<int> eventIdSeries = List.generate(
-                      gpsTimeline.length,
-                          (i) => eventIdMap[i] ?? -1, // 저장 안 된 일정은 -1로 표시
-                    );
-                    print('eventIdMap: $eventIdMap');
-                    print('eventIdSeries: $eventIdSeries');
-                    await saveTimelineToServer(eventIdSeries);
+                  List<int> eventIdSeries = List.generate(
+                    gpsTimeline.length,
+                    (i) => eventIdMap[i] ?? -1, // 저장 안 된 일정은 -1로 표시
+                  );
+                  print('eventIdMap: $eventIdMap');
+                  print('eventIdSeries: $eventIdSeries');
+                  await saveTimelineToServer(eventIdSeries);
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DiaryPage(
-                          entry: newEntry,
-                          emotionEmoji: newEntry.emotionEmoji,
-                          date: newEntry.date,
-                        ),
-                      ),
-                    );
-                  },
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => DiaryPage(
+                            entry: newEntry,
+                            emotionEmoji: newEntry.emotionEmoji,
+                            date: newEntry.date,
+                          ),
+                    ),
+                  );
+                },
                 icon: const Icon(Icons.book),
                 label: const Text("Go to the Diary"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.lightBlue[200],
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -512,12 +586,11 @@ class _WritePageState extends State<WritePage> {
             case 0:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => CalendarScreen(
-                )),
+                MaterialPageRoute(builder: (context) => CalendarScreen()),
               );
               break;
             case 1:
-            // 현재 페이지가 타임라인이므로 아무 동작도 하지 않음
+              // 현재 페이지가 타임라인이므로 아무 동작도 하지 않음
               break;
             case 2:
               Navigator.push(
@@ -536,10 +609,7 @@ class _WritePageState extends State<WritePage> {
             icon: Icon(Icons.timeline),
             label: 'Timeline',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'My Page',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
         ],
       ),
     );

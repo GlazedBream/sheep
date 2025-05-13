@@ -86,6 +86,7 @@ flutter:
     - assets/images/test7.jpg
     - assets/images/test8.jpg
     - assets/images/test9.jpg
+    - assets/profile_sheep/
     - .env
 
 
