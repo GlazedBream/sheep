@@ -306,6 +306,28 @@ class _WritePageState extends State<WritePage> {
 
   Map<int, int> eventIdMap = {}; // {timelineIndex: eventId}
 
+  // 네비게이션 처리 메서드
+  void _onNavigationTap(int index) {
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CalendarScreen()),
+        );
+        break;
+      case 1:
+      // 현재 페이지이므로 아무 동작 안 함
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MyPageScreen()),
+        );
+        break;
+    }
+  }
+
+
   void _onEventSaved(int index, int event_id) async {
     await _saveEventIndex(index);
     setState(() {
@@ -338,32 +360,21 @@ class _WritePageState extends State<WritePage> {
   Widget build(BuildContext context) {
     return ThemedScaffold(
       title: "📅 Today's Timeline",
-      currentIndex: 1,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CalendarScreen()),
-            );
-            break;
-          case 1:
-            break;
-          case 2:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MyPageScreen()),
-            );
-            break;
-        }
-      },
+      currentIndex: 1,  // 현재 선택된 탭 인덱스
+      onTap: _onNavigationTap,
       navItems: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.calendar_today),
           label: 'Review',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.timeline), label: 'Timeline'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.timeline),
+          label: 'Timeline',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'My Page',
+        ),
       ],
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -578,39 +589,6 @@ class _WritePageState extends State<WritePage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // 현재 페이지 인덱스 (예: 타임라인 페이지면 1)
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CalendarScreen()),
-              );
-              break;
-            case 1:
-              // 현재 페이지가 타임라인이므로 아무 동작도 하지 않음
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyPageScreen()),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Review',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timeline),
-            label: 'Timeline',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My Page'),
-        ],
       ),
     );
   }

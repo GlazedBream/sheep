@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart'; // 추가!
+import 'package:test_sheep/theme/templates.dart';
 import 'data/diary_provider.dart'; // 추가! (너가 만든 DiaryProvider 파일 경로에 맞춰야 해)
 import 'pages/starting/landing.dart'; // 추가! (LandingPage 위치에 맞춰야 해)
 import 'package:google_maps_flutter/google_maps_flutter.dart';

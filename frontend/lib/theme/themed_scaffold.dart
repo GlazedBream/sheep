@@ -37,15 +37,12 @@ class ThemedScaffold extends StatelessWidget {
         actions: actions,
       ),
       body: SafeArea(
-        child: Stack(
-          children: [
-
-            // ✅ 메인 콘텐츠 위젯
-            child,
-          ],
-        ),
+        child: child,
       ),
-      bottomNavigationBar: currentIndex != null && onTap != null && navItems != null
+      bottomNavigationBar: currentIndex != null &&
+          onTap != null &&
+          navItems != null &&
+          navItems!.isNotEmpty  // 빈 리스트 체크
           ? BottomNavigationBar(
         backgroundColor: template.appBarColor,
         selectedItemColor: Colors.white,
