@@ -108,6 +108,8 @@ AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL")
 AWS_S3_FILE_OVERWRITE = os.getenv("AWS_S3_FILE_OVERWRITE", False)
 AWS_QUERYSTRING_AUTH = os.getenv("AWS_QUERYSTRING_AUTH", False)
 
+AWS_S3_URL_EXPIRE = 3600
+
 # S3 업로드 설정
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",
@@ -226,3 +228,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,  # 개발 중에는 관리 편의를 위해 비활성화, 배포 시 True
     "BLACKLIST_AFTER_ROTATION": True,  # 보안 테스트를 위해 활성화 유지 가능
 }
+
+# Celery 설정
+CELERY_BROKER_URL = "redis://localhost:6379/2"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/3"

@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
 )
+from .models import Memo
 
 
 class TimelineCreateView(APIView):
@@ -34,11 +35,9 @@ class TimelineCreateView(APIView):
         - title: 이벤트 제목 (선택, 없으면 null)
         - event_emotion_id: 이벤트 감정 상태 ID (선택, 기본값: 1)
         - weather: 날씨 (선택, 기본값: "sunny")
-        - is_selected_event: 선택된 이벤트 여부 (선택, 기본값: false)
         - memos: 이벤트 메모 배열 (선택, 기본값: 빈 배열)
         - keywords: 이벤트 키워드 배열 (선택, 기본값: 빈 배열)
             - content: 키워드 내용 (필수)
-            - source_type: 키워드 출처 (선택, 기본값: "from_user")
     """
 
     @extend_schema(
@@ -105,13 +104,6 @@ class TimelineCreateView(APIView):
                 description="날씨 (선택, 기본값: 'sunny')",
                 required=False,
             ),
-            # OpenApiParameter(
-            #     name="is_selected_event",
-            #     type=OpenApiTypes.BOOL,
-            #     location=OpenApiParameter.QUERY,
-            #     description="선택된 이벤트 여부 (선택, 기본값: false)",
-            #     required=False,
-            # ),
             OpenApiParameter(
                 name="memos",
                 type=OpenApiTypes.OBJECT,
@@ -133,13 +125,6 @@ class TimelineCreateView(APIView):
                 description="키워드 내용 (필수)",
                 required=True,
             ),
-            OpenApiParameter(
-                name="source_type",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="키워드 출처 (선택, 기본값: 'from_user')",
-                required=False,
-            ),
         ],
         examples=[
             OpenApiExample(
@@ -156,8 +141,8 @@ class TimelineCreateView(APIView):
                             "weather": "sunny",
                             # "is_selected_event": True,
                             "keywords": [
-                                {"content": "산책", "source_type": "from_user"},
-                                {"content": "공원", "source_type": "from_user"},
+                                {"content": "산책"},
+                                {"content": "공원"},
                             ],
                         }
                     ],
@@ -171,63 +156,15 @@ class TimelineCreateView(APIView):
             ),
         ],
     )
-    # def post(self, request):
-    #     # 현재 로그인된 유저의 ID를 가져옴
-    #     user = request.user
-
-    #     # 요청 데이터에서 이벤트 배열 추출
-    #     events_data = request.data.get("events", [])
-
-    #     # Timeline 생성 또는 가져오기
-    #     diary_date = request.data.get("diary_date")
-    #     if not diary_date:
-    #         return Response(
-    #             {"diary_date": ["이 필드는 필수입니다."]},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
-
-    #     try:
-    #         diary_date = datetime.strptime(diary_date, "%Y-%m-%d").date()
-    #     except ValueError:
-    #         return Response(
-    #             {
-    #                 "diary_date": [
-    #                     "날짜 형식이 올바르지 않습니다. YYYY-MM-DD를 사용해주세요."
-    #                 ]
-    #             },
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
-
-    #     timeline, created = Timeline.objects.get_or_create(
-    #         diary_date=diary_date, user_id=user
-    #     )
-
-    #     # 각 이벤트 생성
-    #     events = []
-    #     for event_data in events_data:
-    #         # 이벤트 시리얼라이저에 데이터 전달
-    #         event_serializer = EventSerializer(
-    #             data=event_data, context={"request": request}
-    #         )
-
-    #         if event_serializer.is_valid():
-    #             # Event 생성
-    #             event = event_serializer.save()
-    #             events.append(event)
-    #         else:
-    #             return Response(
-    #                 event_serializer.errors, status=status.HTTP_400_BAD_REQUEST
-    #             )
-
-    #     # 모든 이벤트 생성 완료 후 Timeline 시리얼라이저로 응답
-    #     timeline_serializer = TimelineSerializer(timeline)
-    #     return Response(timeline_serializer.data, status=status.HTTP_201_CREATED)
-
+    
     def post(self, request):
         user = request.user
-        events_data = request.data.get("events", [])
-        date = request.data.get("date")
+        print("📥 [DEBUG] 전체 request.data 수신 내용:", request.data)
 
+        date = request.data.get("date")
+        event_ids_series_raw = request.data.get("event_ids_series")
+
+        # 날짜 검증
         if not date:
             return Response(
                 {"date": ["이 필드는 필수입니다."]},
@@ -242,37 +179,64 @@ class TimelineCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Timeline 객체 생성 또는 가져오기
+        # event_ids_series 검증
+        if not isinstance(event_ids_series_raw, list):
+            return Response(
+                {"event_ids_series": ["이 필드는 리스트 형식이어야 합니다."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        print(f"🧩 [DEBUG] 받은 event_ids_series 리스트: {event_ids_series_raw}")
+
+        # 🧹 -1 값 제거
+        filtered_event_ids = [eid for eid in event_ids_series_raw if eid != -1]
+        print(f"🧩 [DEBUG] 필터링된 이벤트 ID 리스트 (-1 제거됨): {filtered_event_ids}")
+
+        # 🧩 문자열로 변환
+        event_ids_series_str = ",".join(map(str, filtered_event_ids))
+        print(f"🧩 [DEBUG] 변환된 event_ids_series 문자열: {event_ids_series_str}")
+
+        # Timeline 객체 생성 또는 업데이트
         timeline, created = Timeline.objects.get_or_create(
             date=date, user=user
         )
-
-        # 이벤트 생성 및 ID 수집
-        events = []
-        event_ids = []
-        for event_data in events_data:
-            event_serializer = EventSerializer(
-                data=event_data, context={"request": request}
-            )
-
-            if event_serializer.is_valid():
-                event = event_serializer.save()
-                events.append(event)
-                event_ids.append(event.id)
-            else:
-                return Response(
-                    event_serializer.errors, status=status.HTTP_400_BAD_REQUEST
-                )
-
-        # 🆕 event_ids_series 필드 업데이트
-        event_ids_series = ",".join(map(str, event_ids))
-        timeline.event_ids_series = event_ids_series
+        timeline.event_ids_series = event_ids_series_str
         timeline.save()
 
         # 응답 반환
         timeline_serializer = TimelineSerializer(timeline)
         return Response(timeline_serializer.data, status=status.HTTP_201_CREATED)
 
+class TimelineDetailView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TimelineSerializer
+
+    def get(self, request, date_str):
+        user = request.user
+        print(f"📆 [DEBUG] 요청된 날짜: {date_str}")
+
+        try:
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"error": "날짜 형식이 올바르지 않습니다."}, status=400)
+
+        try:
+            timeline = Timeline.objects.get(user=user, date=date)
+        except Timeline.DoesNotExist:
+            return Response({"error": "해당 날짜의 타임라인이 없습니다."}, status=404)
+
+        # 🔄 event_ids_series → 리스트
+        event_ids = [int(eid) for eid in timeline.event_ids_series.split(",") if eid]
+
+        # 📦 Event 정보 조회
+        events = Event.objects.filter(id__in=event_ids)
+        event_data = EventSerializer(events, many=True).data
+
+        return Response({
+            "date": date_str,
+            "events": event_data,
+            "timeline": TimelineSerializer(timeline).data
+        })
 
 class EventUpdateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -304,19 +268,22 @@ class EventUpdateView(APIView):
             404: OpenApiTypes.OBJECT,
         },
     )
+    def get_object(self, event_id):
+        try:
+            return Event.objects.get(event_id=event_id)
+        except Event.DoesNotExist:
+            raise Http404
+
     def get(self, request, event_id):
         try:
-            # Event를 event_id로 조회
-            event = Event.objects.get(event_id=event_id)
-        except Event.DoesNotExist:
+            event = self.get_object(event_id)
+            serializer = self.serializer_class(event)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Http404:
             return Response(
                 {"message": "이벤트를 찾을 수 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
+                status=status.HTTP_404_NOT_FOUND
             )
-
-        # Event의 상세 정보 반환
-        serializer = EventSerializer(event)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         parameters=[
@@ -353,6 +320,48 @@ class EventUpdateView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        request=EventSerializer,
+        responses={
+            200: EventSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+        description="이벤트를 수정합니다."
+    )
+    def put(self, request, event_id):
+        event = self.get_object(event_id)
+        
+        # 요청 사용자와 이벤트 소유자가 같은지 확인
+        if event.user != request.user:
+            return Response(
+                {"error": "이 이벤트를 수정할 권한이 없습니다."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # memos_data는 더 이상 사용하지 않음 (memo_content로 대체)
+        request.data.pop('memos', None)
+        keywords_data = request.data.pop('keywords', [])
+        
+        # 이벤트 업데이트
+        serializer = self.serializer_class(event, data=request.data, partial=True)
+        if serializer.is_valid():
+            # 이벤트 기본 정보 업데이트 (memo_content 포함)
+            updated_event = serializer.save()
+            
+            # 키워드 업데이트 (기존 키워드 삭제 후 새로 생성)
+            event.keywords.all().delete()
+            for keyword_data in keywords_data:
+                Keyword.objects.create(event=event, **keyword_data)
+            
+            # 업데이트된 이벤트 반환
+            updated_serializer = self.serializer_class(updated_event)
+            return Response(updated_serializer.data)
+            
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -487,7 +496,8 @@ class EventCreateView(generics.CreateAPIView):
         }
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        print(request.data.get("memo_content"))
+        serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
@@ -499,9 +509,21 @@ class EventCreateView(generics.CreateAPIView):
         user = self.request.user
         timeline, _ = Timeline.objects.get_or_create(date=date, user=user)
         
-        # Event 생성
+        # Event 생성 (시리얼라이저에서 memo_content 처리)
         event = serializer.save()
-        
+
+        # event_ids_series가 있으면, 해당 이벤트들을 타임라인에 연결
+        event_ids_series = self.request.data.get("event_ids_series", [])
+        if event_ids_series:
+            # event_ids_series가 JSON 형식일 경우
+            try:
+                event_ids = json.loads(event_ids_series)
+                valid_event_ids = [eid for eid in event_ids if eid > 0]  # 유효한 event_id 필터링
+                events = Event.objects.filter(event_id__in=valid_event_ids)
+                timeline.events.add(*events)  # 여러 이벤트를 타임라인에 추가
+            except json.JSONDecodeError:
+                pass  # 잘못된 형식의 event_ids_series 처리
+
         # Timeline과 Event 연결
         timeline.events.add(event)
         timeline.save()

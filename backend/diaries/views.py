@@ -1,5 +1,6 @@
-from rest_framework import status, generics
+from rest_framework import status, serializers
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Diary, DiaryKeyword, Emotion
@@ -13,7 +14,9 @@ from drf_spectacular.utils import (
     OpenApiExample,
 )
 import os
-
+from .tasks import generate_diary_task
+from celery.result import AsyncResult
+import uuid
 
 class DiaryCreateView(APIView):
     """
@@ -335,8 +338,139 @@ class DiaryDetailView(APIView):
 
         diary.final_text = content
         diary.save()
-
+        
         return Response(
             {"message": "일기가 수정되었습니다."},
             status=status.HTTP_200_OK,
         )
+
+
+class DiarySuggestionRequestSerializer(serializers.Serializer):
+    event_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        help_text="이벤트 ID 목록"
+    )
+
+    class Meta:
+        extra_kwargs = {
+            'event_ids': {
+                'example': [1, 2, 3],
+                'description': '일기 생성을 위한 이벤트 ID 목록'
+            }
+        }
+
+
+class DiarySuggestionResponseSerializer(serializers.Serializer):
+    task_id = serializers.CharField(help_text="작업 ID")
+    status = serializers.CharField(help_text="작업 상태")
+
+    class Meta:
+        extra_kwargs = {
+            'task_id': {'example': '550e8400-e29b-41d4-a716-446655440000'},
+            'status': {'example': '작업이 시작되었습니다.'}
+        }
+
+
+class DiarySuggestionView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        request=DiarySuggestionRequestSerializer,
+        responses={202: DiarySuggestionResponseSerializer},
+        description="이벤트 ID 목록을 기반으로 일기 생성을 요청합니다."
+    )
+    def post(self, request):
+        serializer = DiarySuggestionRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        user = request.user
+        event_ids = serializer.validated_data['event_ids']
+        
+        # 비동기 작업 실행
+        task = generate_diary_task.delay(user.id, event_ids)
+        
+        response_data = {
+            'task_id': task.id,
+            'status': '작업이 시작되었습니다.'
+        }
+        response_serializer = DiarySuggestionResponseSerializer(data=response_data)
+        response_serializer.is_valid(raise_exception=True)
+        
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_202_ACCEPTED
+        )
+
+
+class TaskStatusResponseSerializer(serializers.Serializer):
+    task_id = serializers.CharField(help_text="작업 ID")
+    status = serializers.CharField(help_text="작업 상태")
+    result = serializers.DictField(
+        required=False,
+        help_text="작업 결과 (작업이 완료된 경우에만 포함)"
+    )
+    error = serializers.CharField(
+        required=False,
+        help_text="에러 메시지 (작업이 실패한 경우에만 포함)"
+    )
+
+    class Meta:
+        extra_kwargs = {
+            'task_id': {'example': '550e8400-e29b-41d4-a716-446655440000'},
+            'status': {'example': 'SUCCESS'},
+            'result': {'example': {'diary_id': 1, 'message': '일기가 생성되었습니다.'}},
+            'error': {'example': '일기 생성 중 오류가 발생했습니다.'}
+        }
+
+
+class TaskStatusView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TaskStatusResponseSerializer
+    
+    @extend_schema(
+        responses={200: TaskStatusResponseSerializer},
+        parameters=[
+            OpenApiParameter(
+                name='task_id',
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                description='작업 ID',
+                required=True
+            )
+        ],
+        description="작업의 현재 상태를 조회합니다."
+    )
+    def get(self, request, task_id):
+        try:
+            # Celery 작업 상태 확인
+            task_result = AsyncResult(task_id)
+            
+            response = {
+                'task_id': task_id,
+                'status': task_result.status,
+                'result': task_result.result if task_result.ready() else None
+            }
+            
+            if task_result.failed():
+                response['error'] = str(task_result.result)
+                response_serializer = self.get_serializer(data=response)
+                response_serializer.is_valid(raise_exception=True)
+                return Response(
+                    response_serializer.data,
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+                
+            response_serializer = self.get_serializer(data=response)
+            response_serializer.is_valid(raise_exception=True)
+            return Response(response_serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
