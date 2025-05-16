@@ -44,6 +44,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   flutter_secure_storage: ^9.0.0
   path_provider: ^2.1.1
+  permission_handler: ^11.3.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -88,7 +89,6 @@ flutter:
     - assets/images/test8.jpg
     - assets/images/test9.jpg
     - assets/profile_sheep/
-    - .env
 
 
   # The following line ensures that the Material Icons font is

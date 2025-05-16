@@ -106,7 +106,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           pageBuilder: (context, animation, secondaryAnimation) =>
               ReviewPage(
                 entry: diary.toDiaryEntry(),
-                date: dateKey,  // ✅ 날짜 문자열 전달
+                date: dateKey,
+                emotionEmoji: diary.emotionEmoji,
               ),
           // Diary → DiaryEntry 변환 필요
           transitionsBuilder: (context, animation, secondaryAnimation, child) {

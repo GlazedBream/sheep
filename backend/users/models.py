@@ -103,7 +103,7 @@ class UserProfilePicture(models.Model):
     profile_picture_url = models.URLField(max_length=255, blank=True)
 
     def __str__(self):
-        return f"{self.user.name}'s Profile Picture"
+        return f"{self.user.user_name}'s Profile Picture"
 
 
 class UserAlarmSetting(models.Model):
@@ -123,4 +123,4 @@ class UserAlarmSetting(models.Model):
     is_enabled = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.user.name}'s {self.alarm_type} alarm"
+        return f"{self.user.user_name}'s {self.alarm_type} alarm"

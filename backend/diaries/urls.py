@@ -4,13 +4,12 @@ from .views import (
     DiaryByMonthView,
     DiaryDetailView,
     DiarySuggestionView,
-    TaskStatusView,
+    TestPostView,
 )
 
 urlpatterns = [
     path("", DiaryCreateView.as_view(), name="diary_create"),
-    path("dates/", DiaryByMonthView.as_view(), name="diary-by-month"),
+    path("dates/", DiaryByMonthView.as_view(), name="diary_by_month"),
+    path("suggestions/", DiarySuggestionView.as_view(), name="diary_suggestions"),
     path("<str:diary_date>/", DiaryDetailView.as_view(), name="diary_detail"),
-    path('suggestions/', DiarySuggestionView.as_view(), name='diary-suggest'),
-    path('suggestions/tasks/<str:task_id>/', TaskStatusView.as_view(), name='task-status'),
 ]

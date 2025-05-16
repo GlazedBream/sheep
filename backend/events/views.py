@@ -12,7 +12,6 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
 )
-from .models import Memo
 
 
 class TimelineCreateView(APIView):

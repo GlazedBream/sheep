@@ -12,7 +12,15 @@ class _GalleryBottomSheetState extends State<GalleryBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final mockPhotos = List.generate(9, (i) => 'assets/images/test$i.jpg');
+    final mockPhotos = [
+      'assets/images/demo01.jpg',
+      'assets/images/demo02.jpg',
+      'assets/images/demo03.jpg',
+      'assets/images/demo04.jpg',
+      'assets/images/demo05.jpg',
+      'assets/images/demo06.jpg',
+      ...List.generate(9, (i) => 'assets/images/test$i.jpg'),
+    ];
 
     return DraggableScrollableSheet(
       initialChildSize: 0.5,

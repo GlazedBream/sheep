@@ -1,14 +1,12 @@
 from django.db import models
-from users.models import User
 from django.utils import timezone
-# from galleries.models import Location, Picture
 import os
 import json
 
 class Timeline(models.Model):
     timeline_id = models.AutoField(primary_key=True)
     date = models.DateField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
     events = models.ManyToManyField('Event', related_name='timelines')
     event_ids_series = models.TextField(blank=True, null=True)  # 이벤트 일련 번호를 저장하는 필드 (JSON, CSV 형식 등)
 
@@ -41,39 +39,29 @@ class Event(models.Model):
     date = models.CharField(max_length=50, null=True, blank=True)  # 2005-01-01
     title = models.CharField(max_length=200, null=True, blank=True)
     time = models.CharField(max_length=50, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="events")
-    
-    if os.getenv("USE_GEOLOCATION_BYPASS", "False").lower() == "true":
-        longitude = models.FloatField(null=True, blank=True)
-        latitude = models.FloatField(null=True, blank=True)
-    else:
-        location_id = models.ForeignKey('galleries.Location', on_delete=models.CASCADE)
-    
-    # image = models.JSONField(default=list)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, null=True, related_name="events")
+    longitude = models.FloatField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
     
     event_emotion_id = models.IntegerField(default=1)
     weather = models.CharField(max_length=50, default="sunny")
     memo_content = models.TextField(null=True, blank=True)
 
+    class Meta:
+        verbose_name = "이벤트"
+        verbose_name_plural = "이벤트 목록"
+
     def __str__(self):
         return f"Event {self.event_id} - {self.title}"
 
-
-
-class Keyword(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='keywords')
+class Keyword(models.Model):  # ✅ Event 바깥으로 이동
+    event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name='keywords')
     content = models.CharField(max_length=50)
     
+    class Meta:
+        verbose_name = "이벤트 키워드"
+        verbose_name_plural = "이벤트 키워드 목록"
 
     def __str__(self):
         return f"{self.content}"
     
-class Memo(models.Model):
-    memo_id = models.AutoField(primary_key=True)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='memos')
-    memo_content = models.TextField()
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Memo for Event {self.event.event_id}"
-

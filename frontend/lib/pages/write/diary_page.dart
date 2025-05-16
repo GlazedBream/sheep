@@ -45,22 +45,14 @@ extension DiaryEntryExtension on DiaryEntry {
       photos: photos,
       longitude: longitude,
       latitude: latitude,
-      timeline:
-          timeline
-              .map(
-                (latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude},
-              )
-              .toList(),
-      markers:
-          markers
-              .map(
-                (marker) => {
-                  'id': marker.markerId.value,
-                  'lat': marker.position.latitude,
-                  'lng': marker.position.longitude,
-                },
-              )
-              .toList(),
+      timeline: timeline
+          .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
+          .toList(),
+      markers: markers.map((marker) => {
+        'id': marker.markerId.value,
+        'lat': marker.position.latitude,
+        'lng': marker.position.longitude,
+      }).toList(),
       cameraTarget: {
         'lat': cameraTarget.latitude,
         'lng': cameraTarget.longitude,
@@ -70,16 +62,17 @@ extension DiaryEntryExtension on DiaryEntry {
   }
 }
 
+
 class DiaryPage extends StatefulWidget {
   final DiaryEntry entry;
   final String emotionEmoji;
-  final String date; // diary_date로 전달
+  final String date;  // diary_date로 전달
 
   const DiaryPage({
     super.key,
-    required this.entry, // DiaryEntry 객체 전달
+    required this.entry,  // DiaryEntry 객체 전달
     required this.emotionEmoji,
-    required this.date, // diary_date 전달
+    required this.date  // diary_date 전달
   });
 
   @override
@@ -128,21 +121,20 @@ class _DiaryPageState extends State<DiaryPage> {
     if (_textController.text != widget.entry.text) {
       final shouldLeave = await showDialog<bool>(
         context: context,
-        builder:
-            (context) => AlertDialog(
-              title: const Text('저장되지 않았습니다'),
-              content: const Text('나가면 작성한 내용이 저장되지 않습니다.\n그래도 나가시겠습니까?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false), // stay
-                  child: const Text('취소'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true), // leave
-                  child: const Text('나가기'),
-                ),
-              ],
+        builder: (context) => AlertDialog(
+          title: const Text('저장되지 않았습니다'),
+          content: const Text('나가면 작성한 내용이 저장되지 않습니다.\n그래도 나가시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false), // stay
+              child: const Text('취소'),
             ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true), // leave
+              child: const Text('나가기'),
+            ),
+          ],
+        ),
       );
 
       return shouldLeave ?? false;
@@ -158,24 +150,18 @@ class _DiaryPageState extends State<DiaryPage> {
       'final_text': _textController.text,
       'keywords': widget.entry.tags,
       'emotion': convertEmojiToId(widget.entry.emotionEmoji),
-      'timeline_sent':
-          widget.entry.timeline
-              .map(
-                (latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude},
-              )
-              .toList(),
-      'markers':
-          widget.entry.markers
-              .map(
-                (marker) => {
-                  'id': marker.markerId.value,
-                  'lat': marker.position.latitude,
-                  'lng': marker.position.longitude,
-                  // 'title': marker.infoWindow.title ?? '',
-                  // 'snippet': marker.infoWindow.snippet ?? ''
-                },
-              )
-              .toList(),
+      'timeline_sent': widget.entry.timeline
+          .map((latLng) => {'lat': latLng.latitude, 'lng': latLng.longitude})
+          .toList(),
+      'markers': widget.entry.markers
+          .map((marker) => {
+        'id': marker.markerId.value,
+        'lat': marker.position.latitude,
+        'lng': marker.position.longitude,
+        // 'title': marker.infoWindow.title ?? '',
+        // 'snippet': marker.infoWindow.snippet ?? ''
+      })
+          .toList(),
       'cameraTarget': {
         'lat': widget.entry.cameraTarget.latitude,
         'lng': widget.entry.cameraTarget.longitude,
@@ -206,7 +192,10 @@ class _DiaryPageState extends State<DiaryPage> {
         appBar: AppBar(
           title: const Text('Write Diary'),
           actions: [
-            IconButton(icon: const Icon(Icons.save), onPressed: _saveDiary),
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _saveDiary,
+            ),
           ],
           centerTitle: true,
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -214,25 +203,20 @@ class _DiaryPageState extends State<DiaryPage> {
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Text(
                     "🗓 ${widget.entry.date}",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 130),
                   if (widget.entry.emotionEmoji.isNotEmpty) ...[
                     const Text(
                       "오늘의 기분 ",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     Text(
                       widget.entry.emotionEmoji,
@@ -242,6 +226,7 @@ class _DiaryPageState extends State<DiaryPage> {
                 ],
               ),
               const SizedBox(height: 12),
+
 
               // 지도/사진 전환 ChoiceChip
               Row(
@@ -267,19 +252,14 @@ class _DiaryPageState extends State<DiaryPage> {
               const SizedBox(height: 24),
 
               // 다이어리 내용 입력
-              const Text(
-                "📝 다이어리 내용",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+              const Text("📝 다이어리 내용", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextField(
                 controller: _textController,
-                maxLines: null,
+                maxLines: 10, // 최대 10줄로 제한
                 decoration: InputDecoration(
                   hintText: '오늘의 기록을 입력하세요...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.all(12),
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -290,17 +270,11 @@ class _DiaryPageState extends State<DiaryPage> {
 
               // 태그
               if (widget.entry.tags.isNotEmpty) ...[
-                const Text(
-                  "🏷 태그",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                const Text("🏷 태그", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children:
-                      widget.entry.tags
-                          .map((tag) => Chip(label: Text(tag)))
-                          .toList(),
+                  children: widget.entry.tags.map((tag) => Chip(label: Text(tag))).toList(),
                 ),
               ],
 
@@ -317,6 +291,7 @@ class _DiaryPageState extends State<DiaryPage> {
       ),
     );
   }
+
 
   Widget _buildMapTimeline() {
     return Container(
@@ -349,6 +324,8 @@ class _DiaryPageState extends State<DiaryPage> {
     );
   }
 
+
+
   Widget _buildPhotoSlider() {
     if (widget.entry.photos.isEmpty) {
       return const Text("No photos available.");
@@ -359,12 +336,15 @@ class _DiaryPageState extends State<DiaryPage> {
       child: PageView.builder(
         itemCount: widget.entry.photos.length,
         itemBuilder: (context, index) {
-          final photoUrl = widget.entry.photos[index];
+          final photoPath = widget.entry.photos[index];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(photoUrl, fit: BoxFit.cover),
+              child: Image.asset(
+                photoPath,
+                fit: BoxFit.cover,
+              ),
             ),
           );
         },

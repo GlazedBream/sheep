@@ -95,6 +95,9 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "3306"),
+        "OPTIONS": {
+            "charset": "utf8mb4",
+        },
     }
 }
 
@@ -229,6 +232,4 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,  # 보안 테스트를 위해 활성화 유지 가능
 }
 
-# Celery 설정
-CELERY_BROKER_URL = "redis://localhost:6379/2"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/3"
+# Celery 설정 제거됨

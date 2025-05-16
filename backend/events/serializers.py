@@ -1,18 +1,11 @@
 from rest_framework import serializers
 from galleries.models import Location
 from diaries.models import Diary
-from .models import Event, Timeline, Memo, Keyword
+from .models import Event, Timeline
+from django.apps import apps
+
+Keyword = apps.get_model("events", "Keyword")
 import os
-
-### 📌 Memo Serializer
-class MemoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Memo
-        fields = ["memo_content"]
-        extra_kwargs = {
-            'memo_content': {'required': False}
-        }
-
 
 ### 📌 Keyword Serializer
 class KeywordSerializer(serializers.ModelSerializer):
@@ -33,8 +26,6 @@ class EventSerializer(serializers.ModelSerializer):
     time = serializers.CharField()
     emotion_id = serializers.IntegerField(source="event_emotion_id")
     
-    # memos 필드는 이제 읽기 전용으로만 사용 (하위 호환성을 위해 유지)
-    memos = MemoSerializer(many=True, read_only=True)
     keywords = KeywordSerializer(many=True, required=False)
 
     class Meta:
@@ -48,8 +39,7 @@ class EventSerializer(serializers.ModelSerializer):
             "title",
             "emotion_id",
             "weather",
-            "memo_content",  # memo_content를 메인 필드로 사용
-            "memos",  # 하위 호환성을 위해 유지
+            "memo_content",  # 메인 메모 필드
             "keywords",
         ]
         extra_kwargs = {
@@ -89,31 +79,21 @@ class EventSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
 
-        # memo_content 추출 (Event 모델에 저장될 것)
+        # memo_content 추출
         memo_content = validated_data.get('memo_content')
         keywords_data = validated_data.pop('keywords', [])
 
-        # 이벤트 생성 (memo_content 포함)
+        # 이벤트 생성
         event = Event.objects.create(
             user=user,
-            memo_content=memo_content,  # Event 모델에 memo_content 저장
+            memo_content=memo_content,
             **{k: v for k, v in validated_data.items() if k != 'memo_content'}
         )
-
-        # memo_content가 있으면 Memo 모델에도 저장
-        if memo_content:
-            Memo.objects.create(
-                event=event,
-                memo_content=memo_content,
-                user=user
-            )
 
         # 키워드 생성
         for keyword_data in keywords_data:
             Keyword.objects.create(event=event, **keyword_data)
             
-        return event
-
         # 타임라인 연결 및 업데이트
         timeline, created = Timeline.objects.get_or_create(user=user, date=event.date)
         if not hasattr(timeline, 'event_ids_series') or timeline.event_ids_series is None:

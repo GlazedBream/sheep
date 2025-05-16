@@ -32,10 +32,55 @@
 
 import 'package:flutter/material.dart';
 import 'diary.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DiaryProvider with ChangeNotifier {
   // 내부에서 다이어리 리스트를 관리
   final List<Diary> _diaries = [];
+
+  bool _isLoggedIn = false;
+  bool get isLoggedIn => _isLoggedIn;
+
+  Future<void> checkAutoLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final autoLogin = prefs.getBool('autoLogin') ?? false;
+
+      if (token != null && autoLogin) {
+        // 토큰이 유효한지 확인하는 API 호출 필요
+        // 여기서는 단순히 로그인 상태만 설정
+        _isLoggedIn = true;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('자동 로그인 체크 중 오류: $e');
+    }
+  }
+
+  Future<void> login(String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+      await prefs.setBool('autoLogin', true);
+      _isLoggedIn = true;
+      notifyListeners();
+    } catch (e) {
+      print('로그인 중 오류: $e');
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('autoLogin');
+      _isLoggedIn = false;
+      notifyListeners();
+    } catch (e) {
+      print('로그아웃 중 오류: $e');
+    }
+  }
 
 
   // 외부에서 읽기 위한 getter

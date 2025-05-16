@@ -13,8 +13,14 @@ import '/helpers/auth_helper.dart';
 class ReviewPage extends StatefulWidget {
   final DiaryEntry entry;
   final String date;
+  final String emotionEmoji;
 
-  const ReviewPage({super.key, required this.entry, required this.date});
+  const ReviewPage({
+    super.key,
+    required this.entry,
+    required this.date,
+    required this.emotionEmoji,
+  });
 
   @override
   State<ReviewPage> createState() => _ReviewPageState();
@@ -27,10 +33,12 @@ class _ReviewPageState extends State<ReviewPage> {
   LatLng cameraTarget = const LatLng(37.5665, 126.9780); // 기본값
   List<LatLng> timelinePolyline = [];
   Set<Marker> markers = {};
+  String emotionEmoji = '😊';
 
   @override
   void initState() {
     super.initState();
+    emotionEmoji = widget.emotionEmoji;
     fetchDiaryData();
   }
 
@@ -115,15 +123,29 @@ class _ReviewPageState extends State<ReviewPage> {
                 emotionEmoji: diaryEntry!['emotionEmoji'] ?? '',
               );
 
+              final initialText = diaryEntry?['text'] ?? '';
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (_) => DiaryPage(
-                        entry: parsedDiary,
-                        emotionEmoji: parsedDiary.emotionEmoji,
-                        date: widget.date,
-                      ),
+                  builder: (_) {
+                  final diaryEntryObj = DiaryEntry(
+                    date: widget.date,
+                    text: initialText,
+                    tags: [],
+                    photos: [],
+                    latitude: 0.0,
+                    longitude: 0.0,
+                    timeline: [],
+                    markers: {},
+                    cameraTarget: const LatLng(0, 0),
+                    emotionEmoji: diaryEntry?['emotionEmoji'] ?? '',
+                  );
+                  return DiaryPage(
+                    entry: diaryEntryObj,
+                    emotionEmoji: diaryEntry?['emotionEmoji'] ?? '',
+                    date: widget.date,
+                  );
+                },
                 ),
               );
             }

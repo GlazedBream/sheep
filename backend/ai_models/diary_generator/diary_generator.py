@@ -1,93 +1,66 @@
-# ─── 기본 설정 ────────────────────────────────
+from typing import List
 import os
-import io
-import json
-import base64
-from datetime import datetime
+import textwrap
+from langchain.prompts.chat import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from openai import OpenAI
 from dotenv import load_dotenv
 
-# ─── 이미지 및 EXIF 처리 ──────────────────────
-from PIL import Image
+load_dotenv()
 
-# ─── OpenAI 및 LangChain ─────────────────────
-from openai import OpenAI
-from langchain_openai import ChatOpenAI
-from langchain.prompts.chat import ChatPromptTemplate
-
-# ─── 텍스트 정리 ─────────────────────────────
-import textwrap
-
-# ─── 설정값 ───────────────────────────────────
-SCALEDOWN = 6
 OPENAI_TEMPERATURE = 0.5
 MAX_TOKENS = 500
 
-# ─── API 키 로드 ──────────────────────────────
-load_dotenv()
-client = OpenAI()
-chat_model = ChatOpenAI(temperature=OPENAI_TEMPERATURE)
+api_key = os.getenv("OPENAI_API_KEY")
+chat_model = ChatOpenAI(temperature=OPENAI_TEMPERATURE, model_name="gpt-4-turbo-2024-04-09", openai_api_key=api_key)
+
+# 데모 이미지 캡션 매핑
+DEMO_IMAGE_CAPTIONS = {
+    "demo01.jpg": "이 사진은 '춘천 김유정 레일바이크'에 위치한 동백꽃 소설 속 인물 점순이의 동상을 담고 있습니다. "
+                "동상은 야외에 설치되어 있으며, 캐릭터의 표정을 사실적으로 표현해 인물의 생동감을 강조하고 있습니다. "
+                "주변에는 나무와 풀들이 자연스럽게 어우러져 있어 시골 마을의 고요하고 따뜻한 분위기를 자아냅니다.",
+                
+    "demo02.jpg": "이 사진은 '춘천 김유정 레일바이크' 인근의 화원을 담고 있으며, 핑크뮬리가 넓게 퍼져 장관을 이루고 있습니다. "
+                "뒤편에는 낮은 산들이 부드러운 실루엣으로 펼쳐져 있고, 맑고 파란 하늘이 전체 배경을 감싸며 풍경의 탁 트인 느낌을 더욱 강조해 줍니다.",
+                
+    "demo03.jpg": "이 사진은 춘천의 한 카페의 포토존을 보여줍니다. 설치된 건축 구조물은 높은 곳에 위치해 있으며, "
+                "하얀색으로 깔끔하게 마무리되어 있습니다. 이 구조물은 전통적인 아치형 디자인을 현대적으로 해석한 것 같으며, "
+                "정상에는 작은 장식적인 요소가 보입니다. 배경으로는 맑은 하늘이 펼쳐져 있으며, "
+                "햇빛이 구조물을 밝게 비추고 있어 사진 촬영 장소로서 매력적인 환경을 제공합니다.",
+                
+    "demo04.jpg": "이 사진은 춘천의 한 카페에서 찍은 것으로 보입니다. 사진에는 잘 구워진 황금빛 크로와상 하나가 흰색 접시에 담겨 있으며, "
+                "옆에는 나무 포크와 나이프가 놓여 있습니다. 둥근 나무 테이블 위에는 두 개의 파란 무늬가 있는 종이컵에 담긴 커피가 보이는데, "
+                "한 컵은 카푸치노로 보이며 위에 초콜릿 소스로 격자 무늬 장식이 되어 있고, 다른 한 컵은 라떼로 보입니다. "
+                "전체적인 배치와 조화로운 컬러가 포토존으로서의 매력을 더해주는 카페 분위기를 잘 나타내고 있습니다.",
+                
+    "demo05.jpg": "알파카들이 자연스러운 환경에서 평화롭게 지내는 모습이 담긴 이 사진은 몇몇 알파카들이 나무 울타리 안에서 "
+                "구경오는 방문객들을 바라보고 있는 장면을 보여줍니다. 흙길과 녹색의 나무들이 배경에 있어 자연의 느낌을 더해줍니다. "
+                "알파카 중 하나는 특히 카메라를 향해 고개를 들고 있는데, 그 모습이 귀엽고 친근감을 줍니다.",
+                
+    "demo06.jpg": "이 사진은 대형 알파카 캐릭터 조형물이 마음을 표현하는 하트 모양의 물체를 들고 있는 모습을 보여줍니다. "
+                "이 밝은 표정의 알파카는 자연 속에서 평화로움과 친근함을 느끼게 하며, "
+                "배경에는 푸른 하늘과 조그만 건물이 보여 자연스러운 환경 속에서 조화롭게 자리잡고 있습니다."
+}
+
+# 기본 캡션 (매핑에 없는 이미지에 사용)
+DEFAULT_CAPTION = "이 사진은 여행 중 촬영된 장면을 담고 있습니다."
 
 
-# ─── 이미지 압축 함수 ────────────────────────
-def compress_image(image_path, scaledown=SCALEDOWN):
-    img = Image.open(image_path)
-    new_size = (int(img.width / scaledown), int(img.height / scaledown))
-    img = img.resize(new_size, resample=Image.LANCZOS)
-    img = img.convert("RGB")
-    buffer = io.BytesIO()
-    img.save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+def get_demo_captions() -> List[str]:
+    """DEMO_IMAGE_CAPTIONS에 들어있는 모든 캡션을 리스트로 반환합니다."""
+    return list(DEMO_IMAGE_CAPTIONS.values())
 
 
-# ─── 단일 이미지 캡션 생성 ───────────────────
-def image_to_caption(image_path, event_data):
-    b64_img = compress_image(image_path)
+def process_event(event: dict) -> dict:
+    """이벤트 데이터를 처리하여 DEMO_IMAGE_CAPTIONS의 캡션을 모두 포함한 captions 반환.
 
-    system_prompt = textwrap.dedent(
-        f"""\ 
-        너는 사진 속 상황을 묘사하는 이미지 캡션 전문가야.
+    Args:
+        event: 이벤트 데이터 (place, emotion, keywords 등 포함)
 
-        이 사진을 보고 아래 조건을 지키면서 캡션을 작성해줘:
-
-        [작성 조건]
-        - 사진 속 키워드: {', '.join(event_data.get("keywords", ["키워드 없음"]))}
-        - 사물, 인물, 배경, 상황을 자연스럽고 사실적으로 묘사해
-        - 문장은 문법적으로 완결된 자연스러운 문장으로 작성하고, '같다', '인 듯하다'와 같은 불확실한 표현은 피해
-        - 사진에서 보이는 것들을 명확하게 묘사해
-
-        [금지 사항 ❌]
-        - 사진 속 텍스트나 글자에 대한 언급
-        - 사진이 회전되어 있다는 기술적 정보
-        - 날짜, 시간, 계절 등을 직접적으로 언급하거나 추측하지 마
-        """
-    )
-
-    response = client.chat.completions.create(
-        model="gpt-4-turbo-2024-04-09",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"},
-                    }
-                ],
-            },
-        ],
-        max_tokens=MAX_TOKENS,
-    )
-    caption = response.choices[0].message.content
-    return caption
-
-
-# ─── 단일 사건 처리 ───────────────────────────
-def process_event(event):
-    captions = []
-    for image_path in event.get("images", []):
-        caption = image_to_caption(image_path, event)
-        captions.append(caption)
+    Returns:
+        dict: captions에 DEMO_IMAGE_CAPTIONS 값들만 포함된 이벤트 정보
+    """
+    captions = get_demo_captions()
 
     return {
         "event_id": event.get("id", 0),
@@ -99,8 +72,18 @@ def process_event(event):
     }
 
 
-# ─── 일기 생성 함수 ───────────────────────────
-def generate_diary(events: list[dict]) -> str:
+def generate_diary(events: List[dict]) -> str:
+    """이벤트 목록을 기반으로 일기를 생성합니다. 각 이벤트는 DEMO_IMAGE_CAPTIONS의 모든 캡션을 사용함.
+
+    Args:
+        events: 이벤트 목록
+
+    Returns:
+        str: 생성된 일기 내용
+    """
+    if not events:
+        return "오늘은 특별한 일이 없었습니다."
+
     event_summaries = []
 
     diary_prompt = ChatPromptTemplate.from_messages(
@@ -137,11 +120,7 @@ def generate_diary(events: list[dict]) -> str:
     )
 
     for event in events:
-        captions = []
-        for image_path in event.get("images", []):
-            caption = image_to_caption(image_path, event)
-            captions.append(caption)
-
+        captions = get_demo_captions()
         combined_caption = " ".join(captions)
 
         event_summaries.append(

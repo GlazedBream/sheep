@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
         if (!mounted) return;
         Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => WritePage()),
+            MaterialPageRoute(builder: (context) => WritePage(selectedDate: DateTime.now())),
         );
       });
     });
@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (autoLogin == true && accessToken != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => WritePage()), // Timeline으로 변경
+        MaterialPageRoute(builder: (context) => WritePage(selectedDate: DateTime.now())),
       );
     } else {
       // 그렇지 않으면 LoginPage로 이동
